@@ -1,26 +1,37 @@
 # Block Anatomy
 
+**English** · [简体中文](README.zh-CN.md)
+
+**Live site: [anatomy-blocks.vercel.app](https://anatomy-blocks.vercel.app)**
+
 Learn artistic anatomy **one body part at a time**. Each part is shown as simple
-3D muscle blocks (not medical detail) with the bones faintly visible underneath,
-and sliders to bend and twist it so you can watch the blocks change.
+3D muscle blocks sitting on a white mannequin, with sliders to bend and twist it
+so you can watch the blocks change. It is made for people learning to draw, not
+for medical study: only the muscles that shape the surface are included.
 
-Parts so far:
+## What you can study
 
-| Section | Lessons                             | You can move                               |
-| ------- | ----------------------------------- | ------------------------------------------ |
-| Arm     | Forearm, Upper arm, Whole arm, Hand | elbow + forearm twist; fingers and thumb   |
-| Leg     | Thigh, Lower leg, Whole leg, Foot   | knee + ankle; ankle and toes               |
-| Torso   | Front, Back                         | bend, lean sideways, twist                 |
+| Section | Lessons                             | You can move                             |
+| ------- | ----------------------------------- | ---------------------------------------- |
+| Arm     | Forearm, Upper arm, Whole arm, Hand | elbow + forearm twist; fingers and thumb |
+| Leg     | Thigh, Lower leg, Whole leg, Foot   | knee + ankle; ankle and toes             |
+| Torso   | Front, Back                         | bend, lean sideways, twist               |
 
-A **Male / Female** switch re-proportions every part: the female figure has
-narrower ribs and shoulders, a pinched waist, wider hips, slimmer blocks and a
-breast form on the chest.
+## Features
 
-The page speaks English and Simplified Chinese (简体中文). It picks the
-visitor's browser language on first load and remembers a manual choice.
-
-The white shapes underneath (rib cage, hip block, limb cores, hands, feet) are
-deliberately stylised mannequin blocks, not realistic bones.
+- **Bend and twist** - sliders and one-click poses; muscles stretch, bunch up
+  and wrap as the joints move.
+- **Male / Female** - the female figure has narrower ribs and shoulders, a
+  pinched waist, wider hips, slimmer blocks and a breast form on the chest.
+- **Muscle notes** - click a block to highlight it and read where it runs, how
+  to draw it, and what to watch while moving.
+- **Show what you need** - switch muscles, base forms, guide lines, labels and
+  neighbouring muscles on or off. Turn *Muscles* off to study the mannequin
+  blocks alone; turn *Bones* off to see only the muscles.
+- **Four view buttons** per part, plus free rotation and zoom.
+- **English and 简体中文** - follows the browser language on first visit and
+  remembers a manual choice.
+- Works on phones and desktops.
 
 ## Run it
 
@@ -32,11 +43,10 @@ npm run dev
 Other scripts: `npm run build` (type-check + production build into `dist/`),
 `npm run preview` (serve the build), `npm run lint`.
 
-## Deploy on Vercel
+## Deploy
 
-It is a plain static Vite site, so there is nothing to configure: push the
-folder to GitHub, import the repo in Vercel, and accept the detected defaults
-(build command `npm run build`, output `dist`).
+It is a plain static Vite site. The live site is deployed by Vercel from the
+`main` branch with the detected defaults (build `npm run build`, output `dist`).
 
 ## How it works
 
@@ -85,10 +95,17 @@ around the forearm when you twist it.
 ### Adding a part
 
 1. Copy one of the files in `src/parts/` and describe the frames in `frames()`.
-2. List bones (`kind: 'bone'`) and muscles (`kind: 'muscle'`) as sweeps.
+2. List base blocks (`kind: 'bone'`) and muscles (`kind: 'muscle'`) as sweeps.
 3. Add the text for each muscle group in `groups`, and one or more `lessons`
    (which groups to show + where the camera starts).
 4. Register the rig and lessons in `src/parts/index.ts`.
+5. Add the Chinese text for the new ids in `src/i18n/zh.ts` (anything missing
+   falls back to English).
+
+### Adding a language
+
+Copy `src/i18n/zh.ts`, translate it, and register it in `src/i18n/index.ts`
+(`LANGS`, `UI`, `CONTENT`, and one line in `detectLang()`).
 
 In dev mode `window.__dbg` lets you set a pose or camera from the browser
 console, e.g. `__dbg.pose({ elbow: 90 })` or `__dbg.view({ az: 180 })`.

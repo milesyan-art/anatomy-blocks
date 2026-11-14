@@ -14,6 +14,7 @@ import { createLabelStore } from './labels'
 import type { LabelStore } from './labels'
 
 export interface ViewOptions {
+  muscles: boolean
   bones: boolean
   guides: boolean
   labels: boolean
@@ -50,7 +51,7 @@ export function Viewer(props: ViewerProps) {
         <RigModel {...props} store={store} />
         <LabelProjector store={store} center={props.view.target} />
       </Canvas>
-      <LabelLayer store={store} groups={shown} visible={options.labels} focus={focus} onSelect={onSelect} />
+      <LabelLayer store={store} groups={shown} visible={options.labels && options.muscles} focus={focus} onSelect={onSelect} />
     </div>
   )
 }
@@ -206,6 +207,8 @@ function RigModel({
         if (kind === 'prop') return <SweepMesh key={s.def.id} sweep={s} guides={false} dim={0} />
         const g = groups.get(group)
         const inLesson = lesson.show.includes(group)
+        // muscles switched off = study the base forms on their own
+        if (!options.muscles) return null
         if (!inLesson && !options.neighbours) return null
         const dim = !inLesson ? 0.82 : focus && focus !== group ? 0.66 : 0
         return (

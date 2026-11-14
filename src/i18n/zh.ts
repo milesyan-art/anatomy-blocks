@@ -11,6 +11,7 @@ const ui: UiText = {
   bodyType: '体型',
   bodyParts: '身体部位',
   lookFrom: '视角',
+  muscles: '肌肉',
   bones: '骨架',
   guides: '辅助线',
   labels: '标签',

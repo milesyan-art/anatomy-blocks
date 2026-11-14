@@ -50,6 +50,7 @@ export default function App() {
     guides: true,
     labels: true,
     neighbours: false,
+    muscles: true,
   })
   const [view, setView] = useState<{ def: ViewDef; nonce: number }>({ def: lesson.view, nonce: 0 })
 
@@ -204,6 +205,9 @@ export default function App() {
           ))}
         </div>
         <div className="stage-bottom">
+          <Toggle on={options.muscles} onClick={() => toggle('muscles')}>
+            {tr.muscles}
+          </Toggle>
           <Toggle on={options.bones} onClick={() => toggle('bones')}>
             {tr.bones}
           </Toggle>

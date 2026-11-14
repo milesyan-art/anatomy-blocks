@@ -27,6 +27,7 @@ export interface UiText {
   bodyType: string
   bodyParts: string
   lookFrom: string
+  muscles: string
   bones: string
   guides: string
   labels: string
@@ -68,6 +69,7 @@ const en: UiText = {
   bodyType: 'Body type',
   bodyParts: 'Body parts',
   lookFrom: 'Look from',
+  muscles: 'Muscles',
   bones: 'Bones',
   guides: 'Guide lines',
   labels: 'Labels',
