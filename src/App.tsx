@@ -218,7 +218,7 @@ export default function App() {
         </nav>
       </aside>
 
-      <main className="stage">
+      <main className={`stage${light.on ? ' is-studio' : ''}`}>
         <Viewer
           rig={rig}
           lesson={lesson}

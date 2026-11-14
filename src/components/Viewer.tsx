@@ -2,11 +2,23 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import type { ThreeEvent } from '@react-three/fiber'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 import type { CSSProperties } from 'react'
-import { Color, Spherical, Vector3 } from 'three'
-import type { PerspectiveCamera } from 'three'
+import { Box3, Color, DepthTexture, DoubleSide, Matrix4, MeshBasicMaterial, OrthographicCamera, Sphere, Spherical, Vector3, WebGLRenderTarget } from 'three'
+import type { Mesh, Object3D, PerspectiveCamera } from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { DEG } from '../engine/frames'
-import { BONE, BONE_INK, applyLight, inkOf, makeFill, makeGhost, makeOutline, paleOf } from '../engine/materials'
+import {
+  BONE,
+  BONE_INK,
+  applyLight,
+  inkOf,
+  lampViewStore,
+  lightInView,
+  makeFill,
+  makeGhost,
+  makeOutline,
+  paleOf,
+  setShadow,
+} from '../engine/materials'
 import type { LightSetting } from '../engine/materials'
 import { mirrorOf } from '../engine/mirror'
 import type { LimbSide } from '../engine/mirror'
@@ -55,6 +67,7 @@ export function Viewer(props: ViewerProps) {
       >
         <Orbit view={props.view} nonce={props.viewNonce} />
         <Lighting light={props.light} />
+        {props.light.on && <CastShadows />}
         <RigModel {...props} store={store} />
         <LabelProjector store={store} center={props.view.target} />
       </Canvas>
@@ -156,12 +169,141 @@ function Orbit({ view, nonce }: { view: ViewDef; nonce: number }) {
 
 /* ───────────────────────── light ───────────────────────── */
 
+/** A locked lamp's direction in world space (null while the lamp rides on the view). */
+const _lampWorld = new Vector3()
+
 function Lighting({ light }: { light: LightSetting }) {
   const invalidate = useThree((s) => s.invalidate)
+  const camera = useThree((s) => s.camera)
+  const locked = useRef(false)
+
   useLayoutEffect(() => {
+    // the ball always sets the lamp relative to the current view...
     applyLight(light)
+    locked.current = light.on && light.locked
+    // ...and locking pins that direction into the room
+    if (locked.current) {
+      camera.updateMatrixWorld()
+      _lampWorld.copy(lightInView()).transformDirection(camera.matrixWorld)
+      lampViewStore.set(lightInView())
+    }
     invalidate()
-  }, [light, invalidate])
+  }, [light, camera, invalidate])
+
+  // a locked lamp stays put in the room: work out where it is from the current view
+  useFrame(() => {
+    if (!locked.current) return
+    camera.updateMatrixWorld()
+    lightInView().copy(_lampWorld).transformDirection(camera.matrixWorldInverse)
+    lampViewStore.set(lightInView())
+  })
+
+  return null
+}
+
+/* ─────────────────────── cast shadows ─────────────────────── */
+
+/** Meshes on this layer cast shadows: the solid fills only, never outlines or labels. */
+const CASTER_LAYER = 1
+const SHADOW_SIZE = 2048
+
+const castsShadow = (m: Mesh | null) => {
+  m?.layers.enable(CASTER_LAYER)
+}
+
+interface Lamp {
+  target: WebGLRenderTarget
+  eye: OrthographicCamera
+  depthOnly: MeshBasicMaterial
+}
+let _lamp: Lamp | null = null
+
+/** The lamp's camera and its depth picture - made once, on first use. */
+function lamp(): Lamp {
+  if (!_lamp) {
+    const target = new WebGLRenderTarget(SHADOW_SIZE, SHADOW_SIZE)
+    target.depthTexture = new DepthTexture(SHADOW_SIZE, SHADOW_SIZE)
+    const eye = new OrthographicCamera(-1, 1, 1, -1, 0.01, 10)
+    eye.layers.set(CASTER_LAYER)
+    _lamp = { target, eye, depthOnly: new MeshBasicMaterial({ colorWrite: false, side: DoubleSide }) }
+  }
+  return _lamp
+}
+
+const _box = new Box3()
+const _sphere = new Sphere()
+const _point = new Vector3()
+const _center = new Vector3()
+const _dir = new Vector3()
+const _clip = new Matrix4()
+
+/** A box around everything that casts a shadow, built from the blocks' bounding spheres. */
+function castersBox(scene: Object3D): Box3 {
+  _box.makeEmpty()
+  scene.traverseVisible((o) => {
+    const mesh = o as Mesh
+    if (!mesh.isMesh || !mesh.layers.isEnabled(CASTER_LAYER)) return
+    const bs = mesh.geometry.boundingSphere
+    if (!bs) return
+    _sphere.copy(bs).applyMatrix4(mesh.matrixWorld)
+    _box.expandByPoint(_point.copy(_sphere.center).addScalar(_sphere.radius))
+    _box.expandByPoint(_point.copy(_sphere.center).addScalar(-_sphere.radius))
+  })
+  return _box
+}
+
+/**
+ * Before every frame, take a depth picture of the model from the lamp, so a form
+ * that blocks the lamp throws a cast shadow onto the forms behind it - the way the
+ * nose of a cast shades the cheek. Shadows land on the model only, never the backdrop.
+ */
+function CastShadows() {
+  const invalidate = useThree((s) => s.invalidate)
+
+  useEffect(() => {
+    invalidate()
+    return () => {
+      setShadow(null, null, SHADOW_SIZE)
+      invalidate()
+    }
+  }, [invalidate])
+
+  // priority 1: we draw the frame ourselves - the lamp's view first, then the real one
+  useFrame(({ gl, scene, camera }) => {
+    const { target, eye, depthOnly } = lamp()
+    scene.updateMatrixWorld()
+    const box = castersBox(scene)
+    if (box.isEmpty()) {
+      setShadow(null, null, SHADOW_SIZE)
+    } else {
+      box.getCenter(_center)
+      const radius = Math.max(box.getSize(_point).length() / 2, 0.5)
+      // the light rides on the camera; turn its direction into world space
+      _dir.copy(lightInView()).transformDirection(camera.matrixWorld)
+      eye.up.set(0, 1, 0)
+      if (Math.abs(_dir.y) > 0.98) eye.up.set(0, 0, 1)
+      eye.position.copy(_center).addScaledVector(_dir, radius * 2)
+      eye.lookAt(_center)
+      eye.left = eye.bottom = -radius
+      eye.right = eye.top = radius
+      eye.near = radius * 0.5
+      eye.far = radius * 3.5
+      eye.updateProjectionMatrix()
+      eye.updateMatrixWorld()
+
+      setShadow(null, null, SHADOW_SIZE) // never read the picture while drawing into it
+      scene.overrideMaterial = depthOnly
+      gl.setRenderTarget(target)
+      gl.clear()
+      gl.render(scene, eye)
+      gl.setRenderTarget(null)
+      scene.overrideMaterial = null
+      _clip.multiplyMatrices(eye.projectionMatrix, eye.matrixWorldInverse)
+      setShadow(target.depthTexture, _clip, SHADOW_SIZE)
+    }
+    gl.render(scene, camera)
+  }, 1)
+
   return null
 }
 
@@ -287,7 +429,7 @@ function SweepMesh({ sweep, group, guides, dim, solid = false, onHover, onSelect
     }
     return {
       fill: makeFill(fill, ink),
-      outline: makeOutline(ink, thickness),
+      outline: makeOutline(ink, thickness, fill),
       ghost: kind === 'bone' ? makeGhost() : null,
     }
   }, [kind, color])
@@ -328,7 +470,7 @@ function SweepMesh({ sweep, group, guides, dim, solid = false, onHover, onSelect
 
   return (
     <>
-      <mesh geometry={sweep.geometry} {...handlers}>
+      <mesh ref={castsShadow} geometry={sweep.geometry} {...handlers}>
         <primitive
           object={mats.fill}
           attach="material"

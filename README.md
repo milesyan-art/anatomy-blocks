@@ -100,7 +100,7 @@ Each link opens that part straight away.
 | ↔️ | **Left / Right** | Choose the left or right limb. Works for arms, hands, legs and feet. |
 | 🚻 | **Male / Female** | The female figure has a narrower rib cage and shoulders, a smaller waist, wider hips, slimmer muscles and a breast shape on the chest. |
 | 🙈 | **Show and hide** | Switch on or off: *Muscles*, *Bones*, *Guide lines*, *Labels* and *Neighbours* (the muscles next door). Hide *Muscles* to study the plain mannequin, or hide *Bones* to see only the muscles. |
-| 💡 | **Light** | Off by default. Turn it on to make the model smooth and solid. Drag the little sun around the ball to move the light, pick a preset like *Top*, *Side* or *Rim* (light from behind), and set how deep the shadows are. |
+| 💡 | **Light** | Off by default. Turn it on and the model becomes a **plaster cast under one lamp**, on a studio backdrop, like the casts you draw in class. Every form shows the full value range: highlight, light, halftone, core shadow, reflected light, and cast shadows where one form blocks the lamp from another. Drag the little sun around the ball to move the lamp, pick a preset like *Top*, *Side* (split light) or *Rim* (from behind), set how hard the lamp is, and switch between *Plaster* and *Colour* (keeps the muscle colours). Turn on *Lock light* to keep the lamp where it is while you turn the model, like walking round a cast in class. |
 | 🌏 | **Language** | English or 简体中文. It follows your browser the first time and remembers your choice. |
 
 <br />
