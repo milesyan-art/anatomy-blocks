@@ -36,12 +36,19 @@ export interface UiText {
   moveIt: string
   blocks: string
   tips: string
+  light: string
+  lightHint: string
+  lightPad: string
+  lightDepth: string
+  lightFlat: string
+  lightDeep: string
   where: string
   drawItAs: string
   watch: string
   /** Section headings and view-button names, keyed by the English word. */
   sections: Record<string, string>
   sides: Record<string, string>
+  lightPresets: Record<string, string>
 }
 
 type GroupText = Pick<GroupDef, 'name' | 'real' | 'where' | 'shape' | 'move'>
@@ -78,11 +85,18 @@ const en: UiText = {
   moveIt: 'Move it',
   blocks: 'The blocks',
   tips: 'Drawing tips',
+  light: 'Light',
+  lightHint: 'Smooth, solid model you can light',
+  lightPad: 'Light direction',
+  lightDepth: 'Shadow depth',
+  lightFlat: 'flat',
+  lightDeep: 'deep',
   where: 'Where',
   drawItAs: 'Draw it as',
   watch: 'Watch',
   sections: {},
   sides: {},
+  lightPresets: {},
 }
 
 export const UI: Record<Lang, UiText> = { en, zh: zh.ui }

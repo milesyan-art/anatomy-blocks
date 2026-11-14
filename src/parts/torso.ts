@@ -2,6 +2,7 @@ import { Matrix4 } from 'three'
 import { DEG, P, makeFrames, mirrorPoint, mul, rotX, rotY, rotZ, translate } from '../engine/frames'
 import type { GroupDef, LessonDef, PathPoint, RigDef, SweepDef } from '../engine/types'
 import { resize } from './body'
+import { PELVIS_MIDLINE, pelvisBlocks } from './pelvis'
 
 /*
  * Torso, facing +Z.   +X = the figure's left   +Y = up
@@ -29,18 +30,7 @@ const OUT: PathPoint['n'] = [1, 0, 0]
 
 /** Things that sit on the midline (not mirrored). */
 const middle: SweepDef[] = [
-  {
-    id: 'pelvis',
-    group: 'bone',
-    kind: 'bone',
-    section: 'crate',
-    path: [
-      P('pelvis', 0, 1.45, -0.25, 1.4, 0.72, { n: FRONT }),
-      P('pelvis', 0, 0.8, -0.12, 1.3, 0.78, { n: FRONT }),
-      P('pelvis', 0, 0, 0, 1.0, 0.68, { n: FRONT }),
-      P('pelvis', 0, -0.7, -0.05, 0.5, 0.52, { n: FRONT }),
-    ],
-  },
+  ...pelvisBlocks(),
   {
     id: 'spine',
     group: 'bone',
@@ -327,7 +317,7 @@ const mirror = (def: SweepDef): SweepDef => ({
 const RIBS_X = 0.87
 const WAIST_X = 0.78
 const HIPS_X = 1.07
-const MIDLINE = new Set(['pelvis', 'spine', 'ribcage', 'belly', 'sternum', 'head'])
+const MIDLINE = new Set([...PELVIS_MIDLINE, 'spine', 'ribcage', 'belly', 'sternum', 'head'])
 
 /*
  * Blocks that cannot simply be squeezed: the waist is so much narrower than
