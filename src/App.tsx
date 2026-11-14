@@ -3,6 +3,8 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Viewer } from './components/Viewer'
 import type { ViewOptions } from './components/Viewer'
 import type { GroupDef, LessonDef, Pose, RigDef, ViewDef } from './engine/types'
+import { LANGS, UI, detectLang, localizeLesson, localizeRig, rememberLang } from './i18n'
+import type { Lang, UiText } from './i18n'
 import { LESSONS, RIG_IDS, defaultPose, getRig } from './parts'
 import type { Body } from './parts'
 
@@ -17,9 +19,24 @@ function lessonFromHash(): string {
 
 export default function App() {
   const [lessonId, setLessonId] = useState(lessonFromHash)
-  const lesson = LESSONS.find((l) => l.id === lessonId) ?? LESSONS[0]
   const [body, setBody] = useState<Body>('male')
-  const rig = getRig(lesson.rig, body)
+
+  // language: saved choice, else the browser's, else English
+  const [lang, setLang] = useState<Lang>(detectLang)
+  const tr = UI[lang]
+  const lessons = useMemo(() => LESSONS.map((l) => localizeLesson(l, lang)), [lang])
+  const lesson = lessons.find((l) => l.id === lessonId) ?? lessons[0]
+  const rig = useMemo(() => localizeRig(getRig(lesson.rig, body), lang), [lesson.rig, body, lang])
+
+  useEffect(() => {
+    document.documentElement.lang = LANGS.find((l) => l.id === lang)?.html ?? lang
+    document.title = tr.title
+  }, [lang, tr])
+
+  const pickLang = (next: Lang) => {
+    setLang(next)
+    rememberLang(next)
+  }
 
   const [poses, setPoses] = useState<Record<string, Pose>>(() =>
     Object.fromEntries(RIG_IDS.map((id) => [id, defaultPose(getRig(id, 'male'))])),
@@ -118,11 +135,11 @@ export default function App() {
             <i />
           </span>
           <div>
-            <h1>Block Anatomy</h1>
-            <p>one body part at a time</p>
+            <h1>{tr.title}</h1>
+            <p>{tr.tagline}</p>
           </div>
         </div>
-        <div className="body-switch" role="group" aria-label="Body type">
+        <div className="body-switch" role="group" aria-label={tr.bodyType}>
           {(['male', 'female'] as const).map((b) => (
             <button
               key={b}
@@ -131,16 +148,26 @@ export default function App() {
               aria-pressed={body === b}
               onClick={() => setBody(b)}
             >
-              {b === 'male' ? 'Male' : 'Female'}
+              {b === 'male' ? tr.male : tr.female}
             </button>
           ))}
         </div>
-        <nav className="parts" aria-label="Body parts">
+        <label className="lang-pick">
+          <span className="sr-only">{tr.language}</span>
+          <select value={lang} onChange={(e) => pickLang(e.target.value as Lang)}>
+            {LANGS.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <nav className="parts" aria-label={tr.bodyParts}>
           {SECTIONS.map((section) => (
             <div className="parts-group" key={section}>
-              <h2>{section}</h2>
+              <h2>{tr.sections[section] ?? section}</h2>
               <div className="parts-list">
-                {LESSONS.filter((l) => l.section === section).map((l) => (
+                {lessons.filter((l) => l.section === section).map((l) => (
                   <button
                     key={l.id}
                     type="button"
@@ -169,7 +196,7 @@ export default function App() {
           onSelect={(g) => setSelected((cur) => (g === cur ? null : g))}
         />
         <div className="stage-top">
-          <span className="stage-caption">Look from</span>
+          <span className="stage-caption">{tr.lookFrom}</span>
           {sides.map((name, i) => (
             <button key={name} type="button" className="chip" onClick={() => lookFrom(SIDE_ANGLES[i])}>
               {name}
@@ -178,37 +205,38 @@ export default function App() {
         </div>
         <div className="stage-bottom">
           <Toggle on={options.bones} onClick={() => toggle('bones')}>
-            Bones
+            {tr.bones}
           </Toggle>
           <Toggle on={options.guides} onClick={() => toggle('guides')}>
-            Guide lines
+            {tr.guides}
           </Toggle>
           <Toggle on={options.labels} onClick={() => toggle('labels')}>
-            Labels
+            {tr.labels}
           </Toggle>
           <Toggle on={options.neighbours} onClick={() => toggle('neighbours')}>
-            Neighbours
+            {tr.neighbours}
           </Toggle>
         </div>
-        <p className="stage-hint">drag to spin · scroll or pinch to zoom</p>
+        <p className="stage-hint">{tr.hint}</p>
       </main>
 
       <section className="panel">
         <div className="card intro">
-          <span className="eyebrow">{lesson.section}</span>
+          <span className="eyebrow">{tr.sections[lesson.section] ?? lesson.section}</span>
           <h2>{lesson.title}</h2>
           <p>{lesson.blurb}</p>
         </div>
 
-        <MoveCard rig={rig} pose={pose} onChange={setControl} onPreset={glideTo} />
+        <MoveCard title={tr.moveIt} rig={rig} pose={pose} onChange={setControl} onPreset={glideTo} />
 
         <div className="card">
-          <h3>The blocks</h3>
+          <h3>{tr.blocks}</h3>
           <ul className="blocks">
             {shown.map((g) => (
               <BlockRow
                 key={g.id}
                 group={g}
+                tr={tr}
                 open={selected === g.id}
                 onToggle={() => setSelected((cur) => (cur === g.id ? null : g.id))}
                 onHover={setHovered}
@@ -218,7 +246,7 @@ export default function App() {
         </div>
 
         <div className="card tips">
-          <h3>Drawing tips</h3>
+          <h3>{tr.tips}</h3>
           <ul>
             {lesson.tips.map((t) => (
               <li key={t}>{t}</li>
@@ -240,11 +268,13 @@ function Toggle({ on, onClick, children }: { on: boolean; onClick: () => void; c
 }
 
 function MoveCard({
+  title,
   rig,
   pose,
   onChange,
   onPreset,
 }: {
+  title: string
   rig: RigDef
   pose: Pose
   onChange: (id: string, value: number) => void
@@ -252,7 +282,7 @@ function MoveCard({
 }) {
   return (
     <div className="card move">
-      <h3>Move it</h3>
+      <h3>{title}</h3>
       {rig.controls.map((c) => {
         const value = pose[c.id]
         const pct = ((value - c.min) / (c.max - c.min)) * 100
@@ -291,11 +321,13 @@ function MoveCard({
 
 function BlockRow({
   group,
+  tr,
   open,
   onToggle,
   onHover,
 }: {
   group: GroupDef
+  tr: UiText
   open: boolean
   onToggle: () => void
   onHover: (id: string | null) => void
@@ -316,11 +348,11 @@ function BlockRow({
       </button>
       {open && (
         <dl className="block-body">
-          <dt>Where</dt>
+          <dt>{tr.where}</dt>
           <dd>{group.where}</dd>
-          <dt>Draw it as</dt>
+          <dt>{tr.drawItAs}</dt>
           <dd>{group.shape}</dd>
-          <dt>Watch</dt>
+          <dt>{tr.watch}</dt>
           <dd>{group.move}</dd>
         </dl>
       )}

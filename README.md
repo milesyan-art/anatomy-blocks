@@ -16,6 +16,9 @@ A **Male / Female** switch re-proportions every part: the female figure has
 narrower ribs and shoulders, a pinched waist, wider hips, slimmer blocks and a
 breast form on the chest.
 
+The page speaks English and Simplified Chinese (简体中文). It picks the
+visitor's browser language on first load and remembers a manual choice.
+
 The white shapes underneath (rib cage, hip block, limb cores, hands, feet) are
 deliberately stylised mannequin blocks, not realistic bones.
 
@@ -52,6 +55,9 @@ src/
                   one file per rig: base blocks, muscles, text, lessons
     body.ts       helpers that turn a rig into its female version
     index.ts      the list the part picker reads
+  i18n/
+    index.ts      language list, browser detection, fallback to English
+    zh.ts         all Simplified Chinese text, keyed by lesson / muscle id
   components/
     Viewer.tsx    the 3D stage: camera, model, labels
   App.tsx         part picker, sliders, muscle list
