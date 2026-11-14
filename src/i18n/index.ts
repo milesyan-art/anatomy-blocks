@@ -48,6 +48,13 @@ export interface UiText {
   lightDepth: string
   lightFlat: string
   lightDeep: string
+  lightLock: string
+  lightLockHint: string
+  lightSurface: string
+  lightPlaster: string
+  lightColour: string
+  valuesTitle: string
+  values: { highlight: string; light: string; halftone: string; core: string; reflected: string; cast: string }
   where: string
   drawItAs: string
   watch: string
@@ -96,11 +103,25 @@ const en: UiText = {
   blocks: 'The blocks',
   tips: 'Drawing tips',
   light: 'Light',
-  lightHint: 'Smooth, solid model you can light',
+  lightHint: 'A plaster cast under one lamp',
   lightPad: 'Light direction',
   lightDepth: 'Shadow depth',
-  lightFlat: 'flat',
+  lightFlat: 'soft',
   lightDeep: 'deep',
+  lightLock: 'Lock light',
+  lightLockHint: 'The lamp stays put when you turn the model',
+  lightSurface: 'Surface',
+  lightPlaster: 'Plaster',
+  lightColour: 'Colour',
+  valuesTitle: 'Read the values',
+  values: {
+    highlight: 'Highlight',
+    light: 'Light',
+    halftone: 'Halftone',
+    core: 'Core shadow',
+    reflected: 'Reflected light',
+    cast: 'Cast shadow',
+  },
   where: 'Where',
   drawItAs: 'Draw it as',
   watch: 'Watch',

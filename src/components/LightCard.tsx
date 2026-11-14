@@ -1,5 +1,6 @@
+import { useSyncExternalStore } from 'react'
 import type { CSSProperties, KeyboardEvent, PointerEvent } from 'react'
-import { DEFAULT_LIGHT } from '../engine/materials'
+import { DEFAULT_LIGHT, lampViewStore } from '../engine/materials'
 import type { LightSetting } from '../engine/materials'
 import type { UiText } from '../i18n'
 
@@ -7,9 +8,20 @@ const PRESETS: { id: string; set: Partial<LightSetting> }[] = [
   { id: 'Top left', set: { x: DEFAULT_LIGHT.x, y: DEFAULT_LIGHT.y, behind: false } },
   { id: 'Top', set: { x: 0, y: 0.92, behind: false } },
   { id: 'Front', set: { x: 0, y: 0.1, behind: false } },
-  { id: 'Side', set: { x: 0.95, y: 0.1, behind: false } },
+  // a true split light: the lamp level with the side, half the form in shadow
+  { id: 'Side', set: { x: 1, y: 0.05, behind: false } },
   { id: 'Below', set: { x: 0, y: -0.85, behind: false } },
   { id: 'Rim', set: { x: -0.6, y: 0.45, behind: true } },
+]
+
+/** The value structure of a cast under one lamp - the swatches match the shader. */
+const VALUES: { id: keyof UiText['values']; tone: string }[] = [
+  { id: 'highlight', tone: '#fbfaf6' },
+  { id: 'light', tone: '#e4e0d8' },
+  { id: 'halftone', tone: '#b3afa7' },
+  { id: 'core', tone: '#55524d' },
+  { id: 'reflected', tone: '#86827b' },
+  { id: 'cast', tone: '#625f59' },
 ]
 
 const STEPS: Record<string, [number, number]> = {
@@ -40,6 +52,16 @@ export function LightCard({
 }) {
   const set = (patch: Partial<LightSetting>) => onChange({ ...light, ...patch })
 
+  // a locked lamp moves across the ball as you turn the model, so read where it is now
+  const live = useSyncExternalStore(lampViewStore.subscribe, lampViewStore.get)
+  const shown = light.locked ? live : light
+
+  const toggleLock = () =>
+    light.locked
+      ? // unlocking keeps the lamp exactly where it is now, relative to your view
+        set({ locked: false, x: live.x, y: live.y, behind: live.behind })
+      : set({ locked: true })
+
   const moveTo = (e: PointerEvent<HTMLDivElement>) => {
     const box = e.currentTarget.getBoundingClientRect()
     const [x, y] = clampToDisc(
@@ -54,14 +76,14 @@ export function LightCard({
     const step = STEPS[e.key]
     if (!step) return
     e.preventDefault()
-    const [x, y] = clampToDisc(light.x + step[0], light.y + step[1])
+    const [x, y] = clampToDisc(shown.x + step[0], shown.y + step[1])
     // dragging always means a light in front; only the Rim preset puts it behind
     set({ x, y, behind: false })
   }
 
   const pad = {
-    '--lx': `${50 + light.x * 42}%`,
-    '--ly': `${50 - light.y * 42}%`,
+    '--lx': `${50 + shown.x * 42}%`,
+    '--ly': `${50 - shown.y * 42}%`,
     '--depth': light.depth,
   } as CSSProperties
 
@@ -88,12 +110,12 @@ export function LightCard({
         <div className="light-body">
           <div className="light-row">
             <div
-              className={`light-pad${light.behind ? ' is-behind' : ''}`}
+              className={`light-pad${shown.behind ? ' is-behind' : ''}${light.locked ? ' is-locked' : ''}`}
               style={pad}
               role="slider"
               tabIndex={0}
               aria-label={tr.lightPad}
-              aria-valuetext={`${Math.round(light.x * 100)}, ${Math.round(light.y * 100)}`}
+              aria-valuetext={`${Math.round(shown.x * 100)}, ${Math.round(shown.y * 100)}`}
               onPointerDown={(e) => {
                 e.currentTarget.setPointerCapture(e.pointerId)
                 moveTo(e)
@@ -112,6 +134,32 @@ export function LightCard({
                 </button>
               ))}
             </div>
+          </div>
+
+          <button
+            type="button"
+            className={`toggle lock-toggle${light.locked ? ' is-on' : ''}`}
+            aria-pressed={light.locked}
+            title={tr.lightLockHint}
+            onClick={toggleLock}
+          >
+            <span className="toggle-box" aria-hidden="true" />
+            {tr.lightLock}
+            <span className="lock-hint">{tr.lightLockHint}</span>
+          </button>
+
+          <div className="segmented" role="group" aria-label={tr.lightSurface}>
+            {([true, false] as const).map((plaster) => (
+              <button
+                key={String(plaster)}
+                type="button"
+                className={light.plaster === plaster ? 'is-on' : ''}
+                aria-pressed={light.plaster === plaster}
+                onClick={() => set({ plaster })}
+              >
+                {plaster ? tr.lightPlaster : tr.lightColour}
+              </button>
+            ))}
           </div>
 
           <label className="slider">
@@ -133,6 +181,17 @@ export function LightCard({
             </span>
           </label>
 
+          <div className="value-key">
+            <span className="value-key-title">{tr.valuesTitle}</span>
+            <ul>
+              {VALUES.map((v) => (
+                <li key={v.id}>
+                  <span className="value-swatch" style={{ background: v.tone }} aria-hidden="true" />
+                  {tr.values[v.id]}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
     </div>

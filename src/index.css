@@ -566,12 +566,14 @@ input:focus-visible {
   flex: none;
   width: 84px;
   height: 84px;
-  /* a ball lit from wherever the sun sits */
+  /* a plaster ball lit from wherever the sun sits: light, halftone, core shadow, reflected light */
   background: radial-gradient(
     circle at var(--lx) var(--ly),
-    #fff 0%,
-    #fff 14%,
-    color-mix(in srgb, var(--ink) calc(var(--depth) * 55%), #fff) 78%
+    #fbfaf6 0%,
+    #e4e0d8 16%,
+    #b3afa7 40%,
+    color-mix(in srgb, #4b4844 calc(var(--depth) * 100%), #cfcbc3) 64%,
+    color-mix(in srgb, #86827b calc(var(--depth) * 100%), #d6d2ca) 92%
   );
   border: 2px solid var(--ink);
   border-radius: 50%;
@@ -581,10 +583,12 @@ input:focus-visible {
 }
 
 .light-pad.is-behind {
+  /* lit from behind: the ball is in shadow with a bright rim */
   background: radial-gradient(
     circle at var(--lx) var(--ly),
-    color-mix(in srgb, var(--ink) calc(var(--depth) * 55%), #fff) 55%,
-    #fff 100%
+    color-mix(in srgb, #4b4844 calc(var(--depth) * 100%), #cfcbc3) 52%,
+    #9a968f 86%,
+    #f3f0ea 100%
   );
 }
 
@@ -621,6 +625,113 @@ input:focus-visible {
   justify-content: center;
   padding: 3px 9px;
   font-size: 12.5px;
+}
+
+/* lock light */
+
+.lock-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  white-space: normal;
+  text-align: left;
+}
+
+.lock-hint {
+  flex-basis: 100%;
+  padding-left: 20px;
+  font: 400 12px/1.3 'Nunito', var(--cjk), sans-serif;
+  color: var(--ink-soft);
+}
+
+.light-pad.is-locked .light-sun {
+  /* a locked lamp: the sun gets a ring, like a pin */
+  box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--ink);
+}
+
+/* plaster / colour */
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 14px;
+  overflow: hidden;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+}
+
+.segmented button {
+  padding: 4px 10px;
+  font: 500 13.5px var(--display);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.segmented button + button {
+  border-left: 2px solid var(--ink);
+}
+
+.segmented button.is-on {
+  font-weight: 600;
+  background: var(--sun);
+}
+
+/* value key */
+
+.value-key {
+  margin-top: 4px;
+}
+
+.value-key-title {
+  display: block;
+  margin-bottom: 6px;
+  font: 600 12px var(--display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.value-key ul {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.value-key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.value-swatch {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--ink);
+  border-radius: 5px;
+}
+
+/* the studio: a darker backdrop so the white cast reads, like a photo of a cast */
+
+.stage.is-studio {
+  background-color: #8f8d88;
+  background-image: radial-gradient(ellipse at 35% 28%, #b4b2ac 0%, #93918c 45%, #6c6a66 100%);
+  background-size: auto;
+}
+
+.stage.is-studio .stage-hint,
+.stage.is-studio .stage-caption {
+  color: #f1efe9;
 }
 
 /* muscle list */
