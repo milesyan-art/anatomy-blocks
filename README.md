@@ -105,21 +105,6 @@ Each link opens that part straight away.
 
 <br />
 
-## ✏️ Ideas for your practice
-
-- **Draw it as boxes first.** Copy the blocks as simple shapes before you add
-  any curves. Each part also has *Drawing tips* in the side panel.
-- **Do a 4-view study.** Use the *Look from* buttons and draw the same part
-  from the front, side and back.
-- **Before and after.** Draw a pose, then hit a different pose button and draw
-  it again. Circle what changed.
-- **Light it like a still life.** Turn on *Light*, pick *Side* or *Rim*, and
-  practise shading the big planes.
-- **Quiz yourself.** Turn off *Labels* and try to name every block. Click one
-  to check.
-
-<br />
-
 ## 🙋 Questions
 
 <details>
