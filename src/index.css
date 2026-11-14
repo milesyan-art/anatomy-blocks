@@ -152,6 +152,14 @@ input:focus-visible {
   background: var(--sun);
 }
 
+.side-switch.is-disabled {
+  opacity: 0.45;
+}
+
+.side-switch.is-disabled button {
+  cursor: not-allowed;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

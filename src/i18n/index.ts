@@ -25,6 +25,12 @@ export interface UiText {
   female: string
   language: string
   bodyType: string
+  /** Name of the left / right switch (read out by screen readers). */
+  limbSide: string
+  left: string
+  right: string
+  /** Tooltip on the switch when the torso is showing. */
+  sideTorso: string
   bodyParts: string
   lookFrom: string
   muscles: string
@@ -74,6 +80,10 @@ const en: UiText = {
   female: 'Female',
   language: 'Language',
   bodyType: 'Body type',
+  limbSide: 'Which side',
+  left: 'Left',
+  right: 'Right',
+  sideTorso: 'The torso already shows both sides',
   bodyParts: 'Body parts',
   lookFrom: 'Look from',
   muscles: 'Muscles',

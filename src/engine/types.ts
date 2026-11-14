@@ -88,6 +88,11 @@ export interface RigDef {
   frames: (pose: Pose) => FrameGetter
   /** Normalised 0..1 values that key shapes can follow. */
   drives: (pose: Pose) => Record<string, number>
+  /**
+   * Single limbs only: where the body's midline is (x) in this rig's space.
+   * Limbs are modelled as the LEFT one; the right one is the same rig mirrored across this line.
+   */
+  midX?: number
 }
 
 export interface ViewDef {

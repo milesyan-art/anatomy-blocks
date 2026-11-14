@@ -148,6 +148,8 @@ const sweeps: SweepDef[] = [
 
 export const handRig: RigDef = {
   id: 'hand',
+  // the right hand hangs beside it, a little gap between the little fingers
+  midX: -0.75,
   controls: [
     { id: 'curl', label: 'Curl the fingers', min: 0, max: 90, def: 14, lo: 'open', hi: 'fist' },
     { id: 'spread', label: 'Spread the fingers', min: 0, max: 20, def: 6, lo: 'together', hi: 'fanned' },

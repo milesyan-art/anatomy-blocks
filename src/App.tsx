@@ -4,6 +4,8 @@ import { LightCard } from './components/LightCard'
 import { Viewer } from './components/Viewer'
 import type { ViewOptions } from './components/Viewer'
 import { DEFAULT_LIGHT } from './engine/materials'
+import { hasSides, sideView } from './engine/mirror'
+import type { LimbSide } from './engine/mirror'
 import type { LightSetting } from './engine/materials'
 import type { GroupDef, LessonDef, Pose, RigDef, ViewDef } from './engine/types'
 import { LANGS, UI, detectLang, localizeLesson, localizeRig, rememberLang } from './i18n'
@@ -23,6 +25,7 @@ function lessonFromHash(): string {
 export default function App() {
   const [lessonId, setLessonId] = useState(lessonFromHash)
   const [body, setBody] = useState<Body>('male')
+  const [side, setSide] = useState<LimbSide>('left')
 
   // language: saved choice, else the browser's, else English
   const [lang, setLang] = useState<Lang>(detectLang)
@@ -106,6 +109,13 @@ export default function App() {
   const lookFrom = (az: number) =>
     setView((v) => ({ def: { ...lesson.view, az, el: 4 }, nonce: v.nonce + 1 }))
 
+  // the camera glides over to the other limb
+  const pickSide = (next: LimbSide) => {
+    setSide(next)
+    setView((v) => ({ def: lesson.view, nonce: v.nonce + 1 }))
+  }
+  const limb = hasSides(rig)
+
   // dev-only handle for poking at poses and camera from the console
   useEffect(() => {
     if (!import.meta.env.DEV) return
@@ -117,6 +127,7 @@ export default function App() {
           const l = LESSONS.find((x) => x.id === id)
           if (l) pickLesson(l)
         },
+        side: setSide,
       },
     })
   }, [rig, lesson, pickLesson])
@@ -157,6 +168,25 @@ export default function App() {
             </button>
           ))}
         </div>
+        <div
+          className={`body-switch side-switch${limb ? '' : ' is-disabled'}`}
+          role="group"
+          aria-label={tr.limbSide}
+          title={limb ? undefined : tr.sideTorso}
+        >
+          {(['left', 'right'] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={limb && side === s ? 'is-on' : ''}
+              aria-pressed={limb && side === s}
+              disabled={!limb}
+              onClick={() => pickSide(s)}
+            >
+              {tr[s]}
+            </button>
+          ))}
+        </div>
         <label className="lang-pick">
           <span className="sr-only">{tr.language}</span>
           <select value={lang} onChange={(e) => pickLang(e.target.value as Lang)}>
@@ -193,10 +223,11 @@ export default function App() {
           rig={rig}
           lesson={lesson}
           pose={pose}
+          side={side}
           options={options}
           light={light}
           focus={focus}
-          view={view.def}
+          view={sideView(view.def, rig, side)}
           viewNonce={view.nonce}
           onHover={setHovered}
           onSelect={(g) => setSelected((cur) => (g === cur ? null : g))}
