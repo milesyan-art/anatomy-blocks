@@ -1,121 +1,178 @@
+<div align="center">
+
+<img src="public/favicon.svg" width="88" alt="Block Anatomy logo: three stacked colourful blocks" />
+
 # Block Anatomy
+
+**Learn the muscles that matter for drawing, one body part at a time.**
+
+### 👉 [Open Block Anatomy](https://anatomy-blocks.vercel.app) 👈
+
+Runs in your browser · no sign-up · works on phones too
 
 **English** · [简体中文](README.zh-CN.md)
 
-**Live site: [anatomy-blocks.vercel.app](https://anatomy-blocks.vercel.app)**
+<br />
 
-Learn artistic anatomy **one body part at a time**. Each part is shown as simple
-3D muscle blocks sitting on a white mannequin, with sliders to bend and twist it
-so you can watch the blocks change. It is made for people learning to draw, not
-for medical study: only the muscles that shape the surface are included.
+<img src="docs/images/hero.png" width="860" alt="Block Anatomy showing the front of the torso as coloured muscle blocks on a white mannequin, with sliders on the right" />
 
-## What you can study
+</div>
 
-| Section | Lessons                             | You can move                             |
-| ------- | ----------------------------------- | ---------------------------------------- |
-| Arm     | Forearm, Upper arm, Whole arm, Hand | elbow + forearm twist; fingers and thumb |
-| Leg     | Thigh, Lower leg, Whole leg, Foot   | knee + ankle; ankle and toes             |
-| Torso   | Front, Back                         | bend, lean sideways, twist               |
+<br />
 
-## Features
+## 🧱 What is this?
 
-- **Bend and twist** - sliders and one-click poses; muscles stretch, bunch up
-  and wrap as the joints move.
-- **Male / Female** - the female figure has narrower ribs and shoulders, a
-  pinched waist, wider hips, slimmer blocks and a breast form on the chest.
-- **Muscle notes** - click a block to highlight it and read where it runs, how
-  to draw it, and what to watch while moving.
-- **Show what you need** - switch muscles, base forms, guide lines, labels and
-  neighbouring muscles on or off. Turn *Muscles* off to study the mannequin
-  blocks alone; turn *Bones* off to see only the muscles.
-- **Light (optional)** - one switch. Off keeps the reference look: faceted
-  blocks with the bones showing through. On turns the model smooth and solid so
-  light rolls across the forms; drag the sun around a little ball to move it,
-  pick a preset (Rim lights from behind), or set the shadow depth. The panel
-  folds away when the light is off.
-- **Four view buttons** per part, plus free rotation and zoom.
-- **English and 简体中文** - follows the browser language on first visit and
-  remembers a manual choice.
-- Works on phones and desktops.
+Real anatomy is a tangle of tiny muscles. When you draw, you don't need all of
+them. You need the **big shapes** that push out the skin.
 
-## Run it
+Block Anatomy shows each body part as a white mannequin with a few simple,
+coloured **muscle blocks** on top. Move a slider and the blocks stretch, bunch
+up and wrap around, just like the real thing. Spin it around, look from any
+side, and click a block to learn how to draw it.
+
+It's made for **artists**, not doctors. Only the muscles that change the
+surface are included.
+
+<br />
+
+<table>
+<tr>
+<td width="46%" align="center">
+<img src="docs/images/twist.gif" width="300" alt="Animation: the forearm twists from palm up to palm down and the muscle blocks wrap around it" />
+</td>
+<td>
+
+### 🔄 Bend it. Twist it. Watch.
+
+Turn your palm down and the forearm muscles **wrap around** like a towel being wrung out. Bend the elbow and the biceps **bunches up**.
+
+Seeing *why* a shape changes is the fastest way to draw it from imagination.
+
+</td>
+</tr>
+</table>
+
+<br />
+
+## 🚀 Start in 30 seconds
+
+1. **[Open the app.](https://anatomy-blocks.vercel.app)** Nothing to install.
+2. **Pick a body part** from the list on the left. For an arm or leg, choose
+   **Left** or **Right**.
+3. **Drag** to spin it. **Scroll** or **pinch** to zoom.
+4. **Move the sliders** on the right, or tap a pose button like *Flex!*
+5. **Click any coloured block** to read about it.
+
+<br />
+
+## 🦴 Pick a body part
+
+Each link opens that part straight away.
+
+| | Body part | Try these poses |
+| :-: | --- | --- |
+| 💪 | **Arm:** [Forearm](https://anatomy-blocks.vercel.app/#forearm) · [Upper arm](https://anatomy-blocks.vercel.app/#upper-arm) · [Whole arm](https://anatomy-blocks.vercel.app/#arm) | Palm up · Palm down · Thumb up · Flex! |
+| ✋ | **Hand:** [Hand](https://anatomy-blocks.vercel.app/#hand) | Relaxed · Flat · Grip · Fist |
+| 🦵 | **Leg:** [Thigh](https://anatomy-blocks.vercel.app/#thigh) · [Lower leg](https://anatomy-blocks.vercel.app/#lower-leg) · [Whole leg](https://anatomy-blocks.vercel.app/#leg) | Standing · Tiptoe · Sitting · Deep bend |
+| 🦶 | **Foot:** [Foot](https://anatomy-blocks.vercel.app/#foot) | Flat · Tiptoe · Pointed · Flexed |
+| 🧍 | **Torso:** [Front](https://anatomy-blocks.vercel.app/#torso-front) · [Back](https://anatomy-blocks.vercel.app/#torso-back) | Upright · Crunch · Arch · Side bend · Twist |
+
+<br />
+
+<table>
+<tr>
+<td align="center"><img src="docs/images/forearm.png" width="190" alt="Forearm with flexor and ridge muscle blocks" /><br /><sub><b>Forearm</b></sub></td>
+<td align="center"><img src="docs/images/hand.png" width="190" alt="Hand with thumb pad, pinky pad and knuckle pad blocks" /><br /><sub><b>Hand</b></sub></td>
+<td align="center"><img src="docs/images/leg.png" width="190" alt="Whole leg seen from the outside" /><br /><sub><b>Whole leg</b></sub></td>
+<td align="center"><img src="docs/images/back.png" width="190" alt="Female torso seen from the back, showing trapezius, lats and spine muscles" /><br /><sub><b>Torso back</b></sub></td>
+</tr>
+</table>
+
+<br />
+
+## 🧰 Your toolbox
+
+| | Tool | What it does |
+| :-: | --- | --- |
+| 🎚️ | **Move it** | Sliders and one-tap poses for each joint. |
+| 👀 | **Look from** | Four buttons jump to the front, back and sides. You can also drag to spin freely. |
+| 📖 | **Muscle notes** | Click a block to highlight it. You'll see *where* it runs, how to *draw it*, and what to *watch* when it moves. |
+| ↔️ | **Left / Right** | Choose the left or right limb. Works for arms, hands, legs and feet. |
+| 🚻 | **Male / Female** | The female figure has a narrower rib cage and shoulders, a smaller waist, wider hips, slimmer muscles and a breast shape on the chest. |
+| 🙈 | **Show and hide** | Switch on or off: *Muscles*, *Bones*, *Guide lines*, *Labels* and *Neighbours* (the muscles next door). Hide *Muscles* to study the plain mannequin, or hide *Bones* to see only the muscles. |
+| 💡 | **Light** | Off by default. Turn it on to make the model smooth and solid. Drag the little sun around the ball to move the light, pick a preset like *Top*, *Side* or *Rim* (light from behind), and set how deep the shadows are. |
+| 🌏 | **Language** | English or 简体中文. It follows your browser the first time and remembers your choice. |
+
+<br />
+
+## ✏️ Ideas for your practice
+
+- **Draw it as boxes first.** Copy the blocks as simple shapes before you add
+  any curves. Each part also has *Drawing tips* in the side panel.
+- **Do a 4-view study.** Use the *Look from* buttons and draw the same part
+  from the front, side and back.
+- **Before and after.** Draw a pose, then hit a different pose button and draw
+  it again. Circle what changed.
+- **Light it like a still life.** Turn on *Light*, pick *Side* or *Rim*, and
+  practise shading the big planes.
+- **Quiz yourself.** Turn off *Labels* and try to name every block. Click one
+  to check.
+
+<br />
+
+## 🙋 Questions
+
+<details>
+<summary><b>Is this good enough for medical study?</b></summary>
+<br />
+No. It is simplified on purpose. Muscles are grouped and shaped as blocks to
+help you draw, not to be anatomically exact.
+</details>
+
+<details>
+<summary><b>Can I see the right arm or leg?</b></summary>
+<br />
+Yes. Use the <b>Left · Right</b> switch under <i>Male / Female</i>. It works for
+arms, hands, legs and feet, and the view buttons still point the right way. The
+torso already shows both sides, so the switch is greyed out there.
+</details>
+
+<details>
+<summary><b>Does it work on my phone or tablet?</b></summary>
+<br />
+Yes. Drag with one finger to spin and pinch to zoom.
+</details>
+
+<details>
+<summary><b>Can I share a link to one body part?</b></summary>
+<br />
+Yes. Every part has its own link, like
+<a href="https://anatomy-blocks.vercel.app/#hand">anatomy-blocks.vercel.app/#hand</a>.
+The links in the table above work the same way.
+</details>
+
+<br />
+
+---
+
+<details>
+<summary><b>🛠️ For developers</b></summary>
+<br />
+
+Block Anatomy is a small static site built with React, Vite and three.js. To
+run it on your computer:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Other scripts: `npm run build` (type-check + production build into `dist/`),
-`npm run preview` (serve the build), `npm run lint`.
+`npm run build` makes a production build in `dist/`. The live site is deployed
+by Vercel from the `main` branch.
 
-## Deploy
+</details>
 
-It is a plain static Vite site. The live site is deployed by Vercel from the
-`main` branch with the detected defaults (build `npm run build`, output `dist`).
-
-## How it works
-
-Built with React + Vite + three.js (through `@react-three/fiber`). There are no
-3D model files - every shape is generated from a short list of numbers.
-
-```
-src/
-  engine/
-    types.ts      the data format (stations, sweeps, rigs, lessons)
-    sweep.ts      turns a path of stations into a block-shaped mesh
-    frames.ts     small matrix helpers + the P() shorthand
-    materials.ts  flat "drawing" shading, outlines, guide lines, ghost bones
-  parts/
-    arm.ts  hand.ts  leg.ts  foot.ts  torso.ts
-                  one file per rig: base blocks, muscles, text, lessons
-    body.ts       helpers that turn a rig into its female version
-    index.ts      the list the part picker reads
-  i18n/
-    index.ts      language list, browser detection, fallback to English
-    zh.ts         all Simplified Chinese text, keyed by lesson / muscle id
-  components/
-    Viewer.tsx    the 3D stage: camera, model, labels
-  App.tsx         part picker, sliders, muscle list
-```
-
-### A muscle is a path of stations
-
-```ts
-P('hum', 0.02, -1.6, 0.34, 0.3, 0.24, { n: [0, 0, 1] })
-// frame  x     y     z    half-width  thickness   outward direction
-```
-
-Each station is glued to a **frame** (a bone). When a slider moves, the frames
-move, the stations ride along, and the block is re-swept through them - so a
-muscle that starts on the upper arm and ends on the radius really does wrap
-around the forearm when you twist it.
-
-- `fa@0.3` means "the forearm frame with 30% of the twist applied" - that is how
-  the twist is spread gradually from elbow to wrist.
-- `alt` gives a station a second position/size that a drive (e.g. how bent the
-  elbow is) blends towards - used for the biceps bunching up.
-- `bulge` makes a block thicken automatically when its path gets shorter.
-- `curl` wraps a wide, flat block around the form underneath (deltoid, lats...).
-
-### Adding a part
-
-1. Copy one of the files in `src/parts/` and describe the frames in `frames()`.
-2. List base blocks (`kind: 'bone'`) and muscles (`kind: 'muscle'`) as sweeps.
-3. Add the text for each muscle group in `groups`, and one or more `lessons`
-   (which groups to show + where the camera starts).
-4. Register the rig and lessons in `src/parts/index.ts`.
-5. Add the Chinese text for the new ids in `src/i18n/zh.ts` (anything missing
-   falls back to English).
-
-### Adding a language
-
-Copy `src/i18n/zh.ts`, translate it, and register it in `src/i18n/index.ts`
-(`LANGS`, `UI`, `CONTENT`, and one line in `detectLang()`).
-
-In dev mode `window.__dbg` lets you set a pose or camera from the browser
-console, e.g. `__dbg.pose({ elbow: 90 })` or `__dbg.view({ az: 180 })`.
-
-## Units and directions
-
-1 unit is roughly 10 cm. `+Y` is up and `+Z` is the front of the body. Limbs are
-modelled as the **left** limb, so `+X` is the outside (thumb side / little-toe side).
+<div align="center">
+<br />
+<sub>Made with 🧱 for people who love to draw.</sub>
+</div>
