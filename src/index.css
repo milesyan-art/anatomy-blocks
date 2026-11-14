@@ -7,9 +7,11 @@
   --pink: #f0719f;
   --blue: #6fb8ec;
   --green: #a9dd78;
-  --display: 'Fredoka', 'Nunito', system-ui, sans-serif;
+  /* the CJK names are fallbacks: Fredoka and Nunito have no Chinese glyphs */
+  --cjk: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei';
+  --display: 'Fredoka', 'Nunito', var(--cjk), system-ui, sans-serif;
 
-  font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: 'Nunito', var(--cjk), system-ui, -apple-system, 'Segoe UI', sans-serif;
   font-size: 15px;
   line-height: 1.45;
   color: var(--ink);
@@ -125,7 +127,7 @@ input:focus-visible {
 .body-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   overflow: hidden;
   background: #fff;
   border: 2px solid var(--ink);
@@ -148,6 +150,36 @@ input:focus-visible {
 .body-switch button.is-on {
   font-weight: 600;
   background: var(--sun);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.lang-pick {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.lang-pick select {
+  width: 100%;
+  padding: 5px 30px 5px 14px;
+  font: 500 14px var(--display);
+  color: var(--ink);
+  appearance: none;
+  -webkit-appearance: none;
+  background: #fff
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%231f2a5c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+    no-repeat right 12px center / 11px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 var(--ink);
+  cursor: pointer;
 }
 
 .parts-group + .parts-group {
@@ -609,6 +641,11 @@ input:focus-visible {
     margin: 0;
   }
 
+  .lang-pick {
+    flex: none;
+    margin: 0;
+  }
+
   .parts-group {
     display: flex;
     align-items: center;
@@ -621,6 +658,7 @@ input:focus-visible {
 
   .parts-group h2 {
     margin: 0;
+    white-space: nowrap;
   }
 
   .parts-list {
