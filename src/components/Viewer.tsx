@@ -8,11 +8,13 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { DEG } from '../engine/frames'
 import { BONE, BONE_INK, applyLight, inkOf, makeFill, makeGhost, makeOutline, paleOf } from '../engine/materials'
 import type { LightSetting } from '../engine/materials'
+import { mirrorOf } from '../engine/mirror'
+import type { LimbSide } from '../engine/mirror'
 import { Sweep } from '../engine/sweep'
 import type { GroupDef, LessonDef, Pose, RigDef, Vec3, ViewDef } from '../engine/types'
 import { restPose } from '../parts'
 import { createLabelStore } from './labels'
-import type { LabelStore } from './labels'
+import type { LabelAnchor, LabelStore } from './labels'
 
 export interface ViewOptions {
   muscles: boolean
@@ -26,6 +28,8 @@ interface ViewerProps {
   rig: RigDef
   lesson: LessonDef
   pose: Pose
+  /** Left or right limb (single-limb rigs only). */
+  side: LimbSide
   options: ViewOptions
   light: LightSetting
   /** Group to spotlight (hovered or selected). */
@@ -167,6 +171,7 @@ function RigModel({
   rig,
   lesson,
   pose,
+  side,
   options,
   light,
   focus,
@@ -192,6 +197,7 @@ function RigModel({
   useEffect(() => () => sweeps.forEach((s) => s.dispose()), [sweeps])
 
   const groups = useMemo(() => new Map(rig.groups.map((g) => [g.id, g])), [rig])
+  const mirror = mirrorOf(rig, side)
 
   // re-shape every block whenever the pose changes
   useLayoutEffect(() => {
@@ -209,40 +215,43 @@ function RigModel({
       const muscles = all.filter((s) => s.def.kind === 'muscle')
       const mine = muscles.length ? muscles : all
       const carrier = mine.find((s) => s.def.label !== undefined) ?? mine[0]
-      if (carrier) store.anchors.set(id, { pos: carrier.anchor, n: carrier.anchorNormal })
+      if (carrier) store.anchors.set(id, { pos: carrier.anchor, n: carrier.anchorNormal, mirror })
     }
     invalidate()
-  }, [store, sweeps, lesson, invalidate])
+  }, [store, sweeps, lesson, mirror, invalidate])
 
   return (
-    <group>
-      {sweeps.map((s) => {
-        const { kind, group } = s.def
-        if (kind === 'bone') {
-          return options.bones ? <SweepMesh key={s.def.id} sweep={s} guides={false} dim={0} solid={solid} /> : null
-        }
-        if (kind === 'prop') return <SweepMesh key={s.def.id} sweep={s} guides={false} dim={0} solid={solid} />
-        const g = groups.get(group)
-        const inLesson = lesson.show.includes(group)
-        // muscles switched off = study the base forms on their own
-        if (!options.muscles) return null
-        if (!inLesson && !options.neighbours) return null
-        const dim = !inLesson ? 0.82 : focus && focus !== group ? 0.66 : 0
-        return (
-          <SweepMesh
-            key={s.def.id}
-            sweep={s}
-            group={g}
-            guides={options.guides && inLesson}
-            dim={dim}
-            solid={solid}
-            onHover={inLesson ? onHover : undefined}
-            onSelect={inLesson ? onSelect : undefined}
-          />
-        )
-      })}
+    // the right limb is the left one reflected across the midline: x -> 2 * mid - x
+    <group position={[mirror === null ? 0 : 2 * mirror, 0, 0]} scale={[mirror === null ? 1 : -1, 1, 1]}>
+      {sweeps.map(renderSweep)}
     </group>
   )
+
+  function renderSweep(s: Sweep) {
+    const { kind, group } = s.def
+    if (kind === 'bone') {
+      return options.bones ? <SweepMesh key={s.def.id} sweep={s} guides={false} dim={0} solid={solid} /> : null
+    }
+    if (kind === 'prop') return <SweepMesh key={s.def.id} sweep={s} guides={false} dim={0} solid={solid} />
+    const g = groups.get(group)
+    const inLesson = lesson.show.includes(group)
+    // muscles switched off = study the base forms on their own
+    if (!options.muscles) return null
+    if (!inLesson && !options.neighbours) return null
+    const dim = !inLesson ? 0.82 : focus && focus !== group ? 0.66 : 0
+    return (
+      <SweepMesh
+        key={s.def.id}
+        sweep={s}
+        group={g}
+        guides={options.guides && inLesson}
+        dim={dim}
+        solid={solid}
+        onHover={inLesson ? onHover : undefined}
+        onSelect={inLesson ? onSelect : undefined}
+      />
+    )
+  }
 }
 
 interface SweepMeshProps {
@@ -341,6 +350,8 @@ function SweepMesh({ sweep, group, guides, dim, solid = false, onHover, onSelect
 
 const _v = new Vector3()
 const _w = new Vector3()
+const _p = new Vector3()
+const _n = new Vector3()
 
 function LabelProjector({ store, center }: { store: LabelStore; center: Vec3 }) {
   useFrame(({ camera, size }) => {
@@ -358,15 +369,16 @@ function LabelProjector({ store, center }: { store: LabelStore; center: Vec3 }) 
     const cx = (_v.set(center[0], center[1], center[2]).project(camera).x * 0.5 + 0.5) * size.width
 
     for (const [id, a] of store.anchors) {
-      _v.copy(a.pos).project(camera)
+      placeAnchor(a)
+      _v.copy(_p).project(camera)
       const ax = (_v.x * 0.5 + 0.5) * size.width
       const ay = (-_v.y * 0.5 + 0.5) * size.height
       const behind = _v.z > 1
-      _w.copy(a.pos).addScaledVector(a.n, 0.6).project(camera)
+      _w.copy(_p).addScaledVector(_n, 0.6).project(camera)
       const dx = (_w.x * 0.5 + 0.5) * size.width - ax
       const dy = (-_w.y * 0.5 + 0.5) * size.height - ay
-      _w.copy(camera.position).sub(a.pos).normalize()
-      const facing = a.n.dot(_w)
+      _w.copy(camera.position).sub(_p).normalize()
+      const facing = _n.dot(_w)
       // labels go outwards: away from the middle of the model, nudged by which way the block faces
       let side = ax - cx + dx * 0.6 >= 0 ? 1 : -1
       // no room on that side (narrow screens)? hop over to the other one
@@ -416,6 +428,16 @@ function LabelProjector({ store, center }: { store: LabelStore; center: Vec3 }) 
     }
   })
   return null
+}
+
+/** Where a label points, in the scene: the anchor, reflected for the right limb. Writes _p and _n. */
+function placeAnchor(a: LabelAnchor) {
+  _p.copy(a.pos)
+  _n.copy(a.n)
+  if (a.mirror !== null) {
+    _p.x = 2 * a.mirror - _p.x
+    _n.x = -_n.x
+  }
 }
 
 function LabelLayer({

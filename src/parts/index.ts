@@ -1,11 +1,11 @@
 import type { LessonDef, Pose, RigDef } from '../engine/types'
-import { armLessons, armRig } from './arm'
+import { ARM_MID_X, armLessons, armRig } from './arm'
 import { slim } from './body'
 import type { Body } from './body'
 import { footLessons, footRig } from './foot'
 import { handLessons, handRig } from './hand'
 import { legLessons, legRig } from './leg'
-import { torsoLessons, torsoRig, torsoRigFemale } from './torso'
+import { RIBS_X, torsoLessons, torsoRig, torsoRigFemale } from './torso'
 
 export type { Body } from './body'
 
@@ -18,7 +18,8 @@ const RIGS: Record<Body, Record<string, RigDef>> = {
     torso: torsoRig,
   },
   female: {
-    arm: slim(armRig, 0.84),
+    // narrower shoulders, so the midline is closer
+    arm: { ...slim(armRig, 0.84), midX: ARM_MID_X * RIBS_X },
     hand: slim(handRig, 0.9, 0.9),
     leg: slim(legRig, 0.9),
     foot: slim(footRig, 0.92, 0.92),

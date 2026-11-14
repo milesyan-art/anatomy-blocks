@@ -174,6 +174,8 @@ const sweeps: SweepDef[] = [
 
 export const footRig: RigDef = {
   id: 'foot',
+  // the right foot stands about hip width away
+  midX: -0.7,
   controls: [
     { id: 'ankle', label: 'Point the foot', min: -20, max: 45, def: 0, lo: 'toes up', hi: 'toes down' },
     { id: 'toes', label: 'Bend the toes', min: -25, max: 60, def: 0, lo: 'curl', hi: 'lift' },

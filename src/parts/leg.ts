@@ -353,6 +353,7 @@ const sweeps: SweepDef[] = [
 
 export const legRig: RigDef = {
   id: 'leg',
+  midX: -HIP_X,
   controls: [
     { id: 'knee', label: 'Bend the knee', min: 0, max: 135, def: 5, lo: 'straight', hi: 'bent' },
     { id: 'ankle', label: 'Point the foot', min: -20, max: 45, def: 0, lo: 'toes up', hi: 'toes down' },

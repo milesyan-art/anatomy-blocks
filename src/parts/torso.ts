@@ -314,7 +314,7 @@ const mirror = (def: SweepDef): SweepDef => ({
  * The female figure uses the same blocks, re-proportioned:
  * narrower ribs and shoulders, a pinched waist, wider hips, thinner muscles.
  */
-const RIBS_X = 0.87
+export const RIBS_X = 0.87
 const WAIST_X = 0.78
 const HIPS_X = 1.07
 const MIDLINE = new Set([...PELVIS_MIDLINE, 'spine', 'ribcage', 'belly', 'sternum', 'head'])

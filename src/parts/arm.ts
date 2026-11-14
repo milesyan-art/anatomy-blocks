@@ -302,8 +302,12 @@ const sweeps: SweepDef[] = [
   },
 ]
 
+/** The body's midline: the shoulder joints sit this far either side of it (matches the torso). */
+export const ARM_MID_X = -1.85
+
 export const armRig: RigDef = {
   id: 'arm',
+  midX: ARM_MID_X,
   controls: [
     { id: 'elbow', label: 'Bend the elbow', min: 0, max: 145, def: 10, lo: 'straight', hi: 'bent' },
     { id: 'twist', label: 'Twist the forearm', min: 0, max: 160, def: 0, lo: 'palm up', hi: 'palm down' },
