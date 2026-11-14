@@ -68,6 +68,31 @@ const SECTIONS: Record<SectionName, UV[]> = {
   sheet7: sheet(7),
 }
 
+/**
+ * Round off a cross-section for the smooth model: each side is split into
+ * three with a closed Catmull-Rom curve, so corners become curves but the
+ * block keeps its overall proportions.
+ */
+function rounded(sec: UV[]): UV[] {
+  const n = sec.length
+  const out: UV[] = []
+  for (let i = 0; i < n; i++) {
+    const p0 = sec[(i - 1 + n) % n]
+    const p1 = sec[i]
+    const p2 = sec[(i + 1) % n]
+    const p3 = sec[(i + 2) % n]
+    for (let s = 0; s < 3; s++) {
+      const t = s / 3
+      const t2 = t * t
+      const t3 = t2 * t
+      const at = (a: number, b: number, c: number, d: number) =>
+        0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3)
+      out.push([at(p0[0], p1[0], p2[0], p3[0]), at(p0[1], p1[1], p2[1], p3[1])])
+    }
+  }
+  return out
+}
+
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
 /** Catmull-Rom on plain numbers, kept from overshooting. */
@@ -123,12 +148,17 @@ export class Sweep {
   private readonly pos: Float32Array
   private readonly nor: Float32Array
   private readonly onor: Float32Array
+  /** Flat normal of every side strip, kept so the smooth model can blend neighbours. */
+  private readonly stripN: Float32Array
+  private readonly smooth: boolean
   private readonly labelRing: number
   private restLen = 0
 
-  constructor(def: SweepDef) {
+  constructor(def: SweepDef, smooth = false) {
     this.def = def
-    this.sec = SECTIONS[def.section ?? 'block']
+    this.smooth = smooth
+    const base = SECTIONS[def.section ?? 'block']
+    this.sec = smooth ? rounded(base) : base
     const K = (this.K = this.sec.length)
     const n = (this.n = def.path.length)
     const seg = (this.seg = def.seg ?? 3)
@@ -151,6 +181,7 @@ export class Sweep {
     this.pos = new Float32Array(V * 3)
     this.nor = new Float32Array(V * 3)
     this.onor = new Float32Array(V * 3)
+    this.stripN = new Float32Array(R * K * 3)
     const coord = new Float32Array(V * 2)
     const index: number[] = []
 
@@ -350,6 +381,10 @@ export class Sweep {
         _c.crossVectors(_a, _b)
         if (_c.lengthSq() < 1e-14) _c.crossVectors(_a, tangents[i])
         _c.normalize()
+        const sn = (i * K + k) * 3
+        this.stripN[sn] = _c.x
+        this.stripN[sn + 1] = _c.y
+        this.stripN[sn + 2] = _c.z
 
         const v = (i * K + k) * 2 * 3
         for (let e = 0; e < 2; e++) {
@@ -378,6 +413,31 @@ export class Sweep {
           onor[dst] = ox
           onor[dst + 1] = oy
           onor[dst + 2] = oz
+        }
+      }
+    }
+
+    // smooth model: each corner takes the average of the two strips that meet there
+    if (this.smooth) {
+      const sn = this.stripN
+      for (let i = 0; i < R; i++) {
+        for (let k = 0; k < K; k++) {
+          for (let e = 0; e < 2; e++) {
+            const corner = (k + e) % K
+            const a = (i * K + corner) * 3
+            const b = (i * K + ((corner - 1 + K) % K)) * 3
+            let x = sn[a] + sn[b]
+            let y = sn[a + 1] + sn[b + 1]
+            let z = sn[a + 2] + sn[b + 2]
+            const l = Math.hypot(x, y, z) || 1
+            x /= l
+            y /= l
+            z /= l
+            const dst = ((i * K + k) * 2 + e) * 3
+            nor[dst] = x
+            nor[dst + 1] = y
+            nor[dst + 2] = z
+          }
         }
       }
     }

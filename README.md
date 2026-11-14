@@ -28,6 +28,11 @@ for medical study: only the muscles that shape the surface are included.
 - **Show what you need** - switch muscles, base forms, guide lines, labels and
   neighbouring muscles on or off. Turn *Muscles* off to study the mannequin
   blocks alone; turn *Bones* off to see only the muscles.
+- **Light (optional)** - one switch. Off keeps the reference look: faceted
+  blocks with the bones showing through. On turns the model smooth and solid so
+  light rolls across the forms; drag the sun around a little ball to move it,
+  pick a preset (Rim lights from behind), or set the shadow depth. The panel
+  folds away when the light is off.
 - **Four view buttons** per part, plus free rotation and zoom.
 - **English and 简体中文** - follows the browser language on first visit and
   remembers a manual choice.

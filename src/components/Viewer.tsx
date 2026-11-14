@@ -6,7 +6,8 @@ import { Color, Spherical, Vector3 } from 'three'
 import type { PerspectiveCamera } from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { DEG } from '../engine/frames'
-import { BONE, BONE_INK, inkOf, makeFill, makeGhost, makeOutline, paleOf } from '../engine/materials'
+import { BONE, BONE_INK, applyLight, inkOf, makeFill, makeGhost, makeOutline, paleOf } from '../engine/materials'
+import type { LightSetting } from '../engine/materials'
 import { Sweep } from '../engine/sweep'
 import type { GroupDef, LessonDef, Pose, RigDef, Vec3, ViewDef } from '../engine/types'
 import { restPose } from '../parts'
@@ -26,6 +27,7 @@ interface ViewerProps {
   lesson: LessonDef
   pose: Pose
   options: ViewOptions
+  light: LightSetting
   /** Group to spotlight (hovered or selected). */
   focus: string | null
   view: ViewDef
@@ -48,6 +50,7 @@ export function Viewer(props: ViewerProps) {
         onPointerMissed={() => onSelect(null)}
       >
         <Orbit view={props.view} nonce={props.viewNonce} />
+        <Lighting light={props.light} />
         <RigModel {...props} store={store} />
         <LabelProjector store={store} center={props.view.target} />
       </Canvas>
@@ -147,6 +150,17 @@ function Orbit({ view, nonce }: { view: ViewDef; nonce: number }) {
   return null
 }
 
+/* ───────────────────────── light ───────────────────────── */
+
+function Lighting({ light }: { light: LightSetting }) {
+  const invalidate = useThree((s) => s.invalidate)
+  useLayoutEffect(() => {
+    applyLight(light)
+    invalidate()
+  }, [light, invalidate])
+  return null
+}
+
 /* ───────────────────────── model ───────────────────────── */
 
 function RigModel({
@@ -154,23 +168,26 @@ function RigModel({
   lesson,
   pose,
   options,
+  light,
   focus,
   onHover,
   onSelect,
   store,
 }: ViewerProps & { store: LabelStore }) {
   const invalidate = useThree((s) => s.invalidate)
+  // light on = a smooth, solid model so the light can roll across the forms
+  const solid = light.on
 
   const sweeps = useMemo(() => {
     const rest = restPose(rig)
     const frames = rig.frames(rest)
     const drives = rig.drives(rest)
     return rig.sweeps.map((def) => {
-      const s = new Sweep(def)
+      const s = new Sweep(def, solid)
       s.setRest(frames, drives)
       return s
     })
-  }, [rig])
+  }, [rig, solid])
 
   useEffect(() => () => sweeps.forEach((s) => s.dispose()), [sweeps])
 
@@ -202,9 +219,9 @@ function RigModel({
       {sweeps.map((s) => {
         const { kind, group } = s.def
         if (kind === 'bone') {
-          return options.bones ? <SweepMesh key={s.def.id} sweep={s} guides={false} dim={0} /> : null
+          return options.bones ? <SweepMesh key={s.def.id} sweep={s} guides={false} dim={0} solid={solid} /> : null
         }
-        if (kind === 'prop') return <SweepMesh key={s.def.id} sweep={s} guides={false} dim={0} />
+        if (kind === 'prop') return <SweepMesh key={s.def.id} sweep={s} guides={false} dim={0} solid={solid} />
         const g = groups.get(group)
         const inLesson = lesson.show.includes(group)
         // muscles switched off = study the base forms on their own
@@ -218,6 +235,7 @@ function RigModel({
             group={g}
             guides={options.guides && inLesson}
             dim={dim}
+            solid={solid}
             onHover={inLesson ? onHover : undefined}
             onSelect={inLesson ? onSelect : undefined}
           />
@@ -232,11 +250,13 @@ interface SweepMeshProps {
   group?: GroupDef
   guides: boolean
   dim: number
+  /** Light mode: smooth shading, no plane edges, no see-through bones. */
+  solid?: boolean
   onHover?: (group: string | null) => void
   onSelect?: (group: string | null) => void
 }
 
-function SweepMesh({ sweep, group, guides, dim, onHover, onSelect }: SweepMeshProps) {
+function SweepMesh({ sweep, group, guides, dim, solid = false, onHover, onSelect }: SweepMeshProps) {
   const kind = sweep.def.kind
   const color = group?.color
 
@@ -272,7 +292,8 @@ function SweepMesh({ sweep, group, guides, dim, onHover, onSelect }: SweepMeshPr
     [mats],
   )
 
-  const edge = kind === 'bone' || kind === 'prop' ? 0.3 : 0.5
+  // the smooth model has no plane edges to ink
+  const edge = solid ? 0 : kind === 'bone' || kind === 'prop' ? 0.3 : 0.5
   const ring = guides ? (kind === 'tendon' ? 0.45 : 0.7) : 0
 
   const id = sweep.def.group
@@ -310,7 +331,8 @@ function SweepMesh({ sweep, group, guides, dim, onHover, onSelect }: SweepMeshPr
       <mesh geometry={sweep.geometry}>
         <primitive object={mats.outline} attach="material" uniforms-uDim-value={dim * 0.85} />
       </mesh>
-      {mats.ghost && <mesh geometry={sweep.geometry} material={mats.ghost} renderOrder={10} />}
+      {/* see-through bones only in the reference look; the solid model hides what is inside */}
+      {mats.ghost && !solid && <mesh geometry={sweep.geometry} material={mats.ghost} renderOrder={10} />}
     </>
   )
 }

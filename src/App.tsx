@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { LightCard } from './components/LightCard'
 import { Viewer } from './components/Viewer'
 import type { ViewOptions } from './components/Viewer'
+import { DEFAULT_LIGHT } from './engine/materials'
+import type { LightSetting } from './engine/materials'
 import type { GroupDef, LessonDef, Pose, RigDef, ViewDef } from './engine/types'
 import { LANGS, UI, detectLang, localizeLesson, localizeRig, rememberLang } from './i18n'
 import type { Lang, UiText } from './i18n'
@@ -52,6 +55,7 @@ export default function App() {
     neighbours: false,
     muscles: true,
   })
+  const [light, setLight] = useState<LightSetting>(DEFAULT_LIGHT)
   const [view, setView] = useState<{ def: ViewDef; nonce: number }>({ def: lesson.view, nonce: 0 })
 
   const pickLesson = useCallback((l: LessonDef) => {
@@ -190,6 +194,7 @@ export default function App() {
           lesson={lesson}
           pose={pose}
           options={options}
+          light={light}
           focus={focus}
           view={view.def}
           viewNonce={view.nonce}
@@ -232,6 +237,8 @@ export default function App() {
         </div>
 
         <MoveCard title={tr.moveIt} rig={rig} pose={pose} onChange={setControl} onPreset={glideTo} />
+
+        <LightCard light={light} tr={tr} onChange={setLight} />
 
         <div className="card">
           <h3>{tr.blocks}</h3>

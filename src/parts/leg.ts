@@ -1,6 +1,7 @@
 import { Matrix4 } from 'three'
 import { DEG, P, makeFrames, mul, rotX, translate } from '../engine/frames'
 import type { LessonDef, PathPoint, RigDef, SweepDef } from '../engine/types'
+import { pelvisBlocks } from './pelvis'
 
 /*
  * LEFT leg, standing.
@@ -8,7 +9,7 @@ import type { LessonDef, PathPoint, RigDef, SweepDef } from '../engine/types'
  * Hip joint at the origin, knee 4.3 below it, ankle 3.95 below the knee.
  *
  * Frames
- *   pelvis  hip bone (never moves)
+ *   pelvis  hip block (never moves) - shared with the torso, see pelvis.ts
  *   femur   thigh bone (fixed here - the knee and ankle do the moving)
  *   knee@k  sits at the knee, turned by k x the knee bend (0 = thigh ... 1 = shin)
  *   tibia   shin (= knee@1). The kneecap rides on this one.
@@ -17,6 +18,8 @@ import type { LessonDef, PathPoint, RigDef, SweepDef } from '../engine/types'
 
 const KNEE: [number, number, number] = [-0.22, -4.3, 0]
 const ANKLE: [number, number, number] = [-0.02, -3.95, -0.05]
+/** How far the hip joint sits from the body's midline. */
+const HIP_X = 0.85
 const IDENTITY = new Matrix4()
 
 const FRONT: PathPoint['n'] = [0, 0, 1]
@@ -26,42 +29,8 @@ const OUT: PathPoint['n'] = [1, 0, 0]
 
 const sweeps: SweepDef[] = [
   // ───────────── bones ─────────────
-  {
-    id: 'ilium',
-    group: 'bone',
-    kind: 'bone',
-    section: 'box',
-    path: [
-      P('pelvis', 0.36, 0.5, 0.52, 0.3, 0.05, { n: [0.55, 0, 0.83] }),
-      P('pelvis', 0.6, 0.95, 0.02, 0.5, 0.05, { n: [1, 0.2, 0] }),
-      P('pelvis', -0.1, 0.9, -0.75, 0.45, 0.05, { n: [0.3, 0.1, -0.95] }),
-      P('pelvis', -0.6, 0.7, -0.95, 0.3, 0.05, { n: [-0.1, 0, -1] }),
-    ],
-  },
-  {
-    id: 'pubis-ischium',
-    group: 'bone',
-    kind: 'bone',
-    section: 'hex',
-    path: [
-      P('pelvis', -0.85, -0.12, 0.6, 0.14, 0.14, { n: UP }),
-      P('pelvis', -0.35, 0.05, 0.45, 0.12, 0.13, { n: UP }),
-      P('pelvis', -0.12, -0.3, -0.05, 0.14, 0.14, { n: [-1, 0, 0] }),
-      P('pelvis', -0.3, -0.78, -0.45, 0.16, 0.16, { n: [-1, 0, 0] }),
-      P('pelvis', -0.78, -0.5, 0.4, 0.09, 0.09, { n: UP }),
-    ],
-  },
-  {
-    id: 'sacrum',
-    group: 'bone',
-    kind: 'bone',
-    section: 'box',
-    path: [
-      P('pelvis', -0.85, 1.05, -0.9, 0.42, 0.12, { n: BACK }),
-      P('pelvis', -0.85, 0.5, -1.02, 0.3, 0.1, { n: BACK }),
-      P('pelvis', -0.85, -0.05, -0.95, 0.1, 0.07, { n: BACK }),
-    ],
-  },
+  // the whole hip block, slid over so this leg hangs from its left socket
+  ...pelvisBlocks(-HIP_X),
   {
     id: 'femur-neck',
     group: 'bone',
