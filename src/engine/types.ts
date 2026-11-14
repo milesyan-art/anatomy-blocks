@@ -30,7 +30,7 @@ export interface PathPoint {
   alt?: { drive: string; p?: Vec3; w?: number; h?: number }
 }
 
-export type SectionName = 'block' | 'round' | 'box' | 'sheet' | 'sheet7'
+export type SectionName = 'block' | 'round' | 'hex' | 'crate' | 'box' | 'sheet' | 'sheet7'
 
 export type SweepKind = 'muscle' | 'tendon' | 'bone' | 'prop'
 

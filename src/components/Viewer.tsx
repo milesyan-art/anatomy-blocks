@@ -8,7 +8,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { DEG } from '../engine/frames'
 import { BONE, BONE_INK, inkOf, makeFill, makeGhost, makeOutline, paleOf } from '../engine/materials'
 import { Sweep } from '../engine/sweep'
-import type { GroupDef, LessonDef, Pose, RigDef, ViewDef } from '../engine/types'
+import type { GroupDef, LessonDef, Pose, RigDef, Vec3, ViewDef } from '../engine/types'
 import { restPose } from '../parts'
 import { createLabelStore } from './labels'
 import type { LabelStore } from './labels'
@@ -48,7 +48,7 @@ export function Viewer(props: ViewerProps) {
       >
         <Orbit view={props.view} nonce={props.viewNonce} />
         <RigModel {...props} store={store} />
-        <LabelProjector store={store} />
+        <LabelProjector store={store} center={props.view.target} />
       </Canvas>
       <LabelLayer store={store} groups={shown} visible={options.labels} focus={focus} onSelect={onSelect} />
     </div>
@@ -187,7 +187,9 @@ function RigModel({
   useLayoutEffect(() => {
     store.anchors.clear()
     for (const id of lesson.show) {
-      const mine = sweeps.filter((s) => s.def.group === id && s.def.kind === 'muscle')
+      const all = sweeps.filter((s) => s.def.group === id)
+      const muscles = all.filter((s) => s.def.kind === 'muscle')
+      const mine = muscles.length ? muscles : all
       const carrier = mine.find((s) => s.def.label !== undefined) ?? mine[0]
       if (carrier) store.anchors.set(id, { pos: carrier.anchor, n: carrier.anchorNormal })
     }
@@ -239,14 +241,11 @@ function SweepMesh({ sweep, group, guides, dim, onHover, onSelect }: SweepMeshPr
     let fill: Color
     let ink: Color
     let thickness = 0.03
-    if (kind === 'bone') {
+    if (kind === 'bone' || kind === 'prop') {
+      // the white mannequin everything else is attached to
       fill = new Color(BONE)
       ink = new Color(BONE_INK)
-      thickness = 0.014
-    } else if (kind === 'prop') {
-      fill = new Color('#f1ead9')
-      ink = new Color('#9c927d')
-      thickness = 0.016
+      thickness = 0.024
     } else if (kind === 'tendon') {
       fill = paleOf(color ?? '#cccccc', 0.6)
       ink = inkOf(color ?? '#cccccc').lerp(new Color('#ffffff'), 0.25)
@@ -270,7 +269,7 @@ function SweepMesh({ sweep, group, guides, dim, onHover, onSelect }: SweepMeshPr
     [mats],
   )
 
-  const edge = kind === 'bone' ? 0 : kind === 'prop' ? 0.35 : 0.5
+  const edge = kind === 'bone' || kind === 'prop' ? 0.3 : 0.5
   const ring = guides ? (kind === 'tendon' ? 0.45 : 0.7) : 0
 
   const id = sweep.def.group
@@ -318,7 +317,7 @@ function SweepMesh({ sweep, group, guides, dim, onHover, onSelect }: SweepMeshPr
 const _v = new Vector3()
 const _w = new Vector3()
 
-function LabelProjector({ store }: { store: LabelStore }) {
+function LabelProjector({ store, center }: { store: LabelStore; center: Vec3 }) {
   useFrame(({ camera, size }) => {
     const rows: {
       id: string
@@ -330,6 +329,9 @@ function LabelProjector({ store }: { store: LabelStore }) {
       side: number
       on: boolean
     }[] = []
+    // the middle of the model on screen
+    const cx = (_v.set(center[0], center[1], center[2]).project(camera).x * 0.5 + 0.5) * size.width
+
     for (const [id, a] of store.anchors) {
       _v.copy(a.pos).project(camera)
       const ax = (_v.x * 0.5 + 0.5) * size.width
@@ -340,11 +342,12 @@ function LabelProjector({ store }: { store: LabelStore }) {
       const dy = (-_w.y * 0.5 + 0.5) * size.height - ay
       _w.copy(camera.position).sub(a.pos).normalize()
       const facing = a.n.dot(_w)
-      let side = Math.abs(dx) > 5 ? Math.sign(dx) : ax > size.width / 2 ? 1 : -1
+      // labels go outwards: away from the middle of the model, nudged by which way the block faces
+      let side = ax - cx + dx * 0.6 >= 0 ? 1 : -1
       // no room on that side (narrow screens)? hop over to the other one
       const pw = store.pills.get(id)?.offsetWidth ?? 0
-      const fitsLeft = ax - 74 - pw > 4
-      const fitsRight = ax + 74 + pw < size.width - 4
+      const fitsLeft = ax - 14 - pw > 4
+      const fitsRight = ax + 14 + pw < size.width - 4
       if (side < 0 && !fitsLeft && fitsRight) side = 1
       else if (side > 0 && !fitsRight && fitsLeft) side = -1
       rows.push({

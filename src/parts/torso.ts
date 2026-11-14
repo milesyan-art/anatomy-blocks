@@ -1,6 +1,7 @@
 import { Matrix4 } from 'three'
 import { DEG, P, makeFrames, mirrorPoint, mul, rotX, rotY, rotZ, translate } from '../engine/frames'
-import type { LessonDef, PathPoint, RigDef, SweepDef } from '../engine/types'
+import type { GroupDef, LessonDef, PathPoint, RigDef, SweepDef } from '../engine/types'
+import { resize } from './body'
 
 /*
  * Torso, facing +Z.   +X = the figure's left   +Y = up
@@ -32,7 +33,7 @@ const middle: SweepDef[] = [
     id: 'pelvis',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'crate',
     path: [
       P('pelvis', 0, 1.45, -0.25, 1.4, 0.72, { n: FRONT }),
       P('pelvis', 0, 0.8, -0.12, 1.3, 0.78, { n: FRONT }),
@@ -44,7 +45,7 @@ const middle: SweepDef[] = [
     id: 'spine',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     path: [
       P('pelvis', 0, 1.0, -0.7, 0.22, 0.2, { n: FRONT }),
       P('w@0.5', 0, 1.6, -0.58, 0.2, 0.2, { n: FRONT }),
@@ -55,14 +56,14 @@ const middle: SweepDef[] = [
     id: 'ribcage',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'crate',
     path: [
-      P('ribs', 0, 5.1, -0.1, 0.45, 0.4, { n: FRONT }),
-      P('ribs', 0, 4.7, -0.05, 1.0, 0.75, { n: FRONT }),
-      P('ribs', 0, 4.0, 0, 1.32, 0.95, { n: FRONT }),
-      P('ribs', 0, 3.2, 0.05, 1.42, 1.02, { n: FRONT }),
-      P('ribs', 0, 2.5, 0.05, 1.36, 0.95, { n: FRONT }),
-      P('ribs', 0, 2.05, 0, 1.2, 0.8, { n: FRONT }),
+      P('ribs', 0, 5.12, -0.1, 0.6, 0.42, { n: FRONT }),
+      P('ribs', 0, 4.75, -0.05, 1.18, 0.78, { n: FRONT }),
+      P('ribs', 0, 4.0, 0, 1.36, 0.95, { n: FRONT }),
+      P('ribs', 0, 3.2, 0.05, 1.36, 1.0, { n: FRONT }),
+      P('ribs', 0, 2.5, 0.05, 1.26, 0.93, { n: FRONT }),
+      P('ribs', 0, 2.05, 0, 1.08, 0.78, { n: FRONT }),
     ],
   },
   {
@@ -70,6 +71,7 @@ const middle: SweepDef[] = [
     id: 'belly',
     group: 'belly',
     kind: 'prop',
+    // rounder than the hard masses, so the waist muscles can wrap it
     section: 'round',
     path: [
       P('ribs', 0, 2.5, 0.05, 1.3, 0.9, { n: FRONT }),
@@ -94,14 +96,14 @@ const middle: SweepDef[] = [
     id: 'head',
     group: 'head',
     kind: 'prop',
-    section: 'round',
+    section: 'crate',
     path: [
       P('ribs', 0, 5.0, -0.22, 0.3, 0.3, { n: FRONT }),
-      P('ribs', 0, 5.75, -0.05, 0.27, 0.3, { n: FRONT }),
-      P('ribs', 0, 6.1, 0.1, 0.42, 0.5, { n: FRONT }),
-      P('ribs', 0, 6.7, 0.1, 0.52, 0.64, { n: FRONT }),
-      P('ribs', 0, 7.25, 0.05, 0.46, 0.56, { n: FRONT }),
-      P('ribs', 0, 7.55, 0, 0.25, 0.3, { n: FRONT }),
+      P('ribs', 0, 5.72, -0.06, 0.27, 0.3, { n: FRONT }),
+      P('ribs', 0, 5.95, 0.12, 0.36, 0.46, { n: FRONT }),
+      P('ribs', 0, 6.45, 0.12, 0.5, 0.62, { n: FRONT }),
+      P('ribs', 0, 7.05, 0.06, 0.53, 0.67, { n: FRONT }),
+      P('ribs', 0, 7.5, 0, 0.4, 0.52, { n: FRONT }),
     ],
   },
 ]
@@ -113,7 +115,7 @@ const left: SweepDef[] = [
     id: 'clavicle',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     path: [
       P('ribs', 0.14, 4.9, 0.62, 0.08, 0.07, { n: UP }),
       P('ribs', 0.9, 4.97, 0.62, 0.07, 0.06, { n: UP }),
@@ -136,7 +138,7 @@ const left: SweepDef[] = [
     id: 'scapula-spine',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     seg: 2,
     path: [
       P('ribs', 0.75, 4.55, -0.95, 0.05, 0.06, { n: UP }),
@@ -148,7 +150,7 @@ const left: SweepDef[] = [
     id: 'arm',
     group: 'arm',
     kind: 'prop',
-    section: 'round',
+    section: 'crate',
     path: [
       P('armL', 0, 0.1, 0, 0.3, 0.32, { n: FRONT }),
       P('armL', 0.02, -0.8, 0, 0.38, 0.46, { n: FRONT }),
@@ -235,8 +237,8 @@ const left: SweepDef[] = [
     bulge: 0.6,
     path: [
       P('pelvis', 0.3, 0.75, -0.95, 0.22, 0.08, { n: BACK }),
-      P('w@0.3', 0.32, 1.4, -0.82, 0.26, 0.14, { n: BACK }),
-      P('w@0.7', 0.32, 2.1, -0.85, 0.24, 0.13, { n: BACK }),
+      P('w@0.3', 0.32, 1.4, -0.93, 0.26, 0.14, { n: BACK }),
+      P('w@0.7', 0.32, 2.1, -0.9, 0.24, 0.13, { n: BACK }),
       P('ribs', 0.3, 2.9, -1.0, 0.2, 0.07, { n: BACK }),
     ],
     label: 1,
@@ -310,152 +312,239 @@ const left: SweepDef[] = [
 
 const toRight = (f: string) => f.replace('armL', 'armR').replace('shL', 'shR')
 
-const right: SweepDef[] = left.map((def) => ({
+const mirror = (def: SweepDef): SweepDef => ({
   ...def,
   id: `${def.id}-r`,
   // only the left copy carries the label
   label: undefined,
   path: def.path.map((pt) => mirrorPoint(pt, toRight)),
-}))
+})
 
-// labels read the left copy first, so list it first within each group
-const sweeps: SweepDef[] = [...middle, ...left, ...right]
+/*
+ * The female figure uses the same blocks, re-proportioned:
+ * narrower ribs and shoulders, a pinched waist, wider hips, thinner muscles.
+ */
+const RIBS_X = 0.87
+const WAIST_X = 0.78
+const HIPS_X = 1.07
+const MIDLINE = new Set(['pelvis', 'spine', 'ribcage', 'belly', 'sternum', 'head'])
 
-export const torsoRig: RigDef = {
-  id: 'torso',
-  controls: [
-    { id: 'bend', label: 'Bend forward / back', min: -22, max: 40, def: 0, lo: 'arch back', hi: 'crunch' },
-    { id: 'lean', label: 'Lean sideways', min: -28, max: 28, def: 0, lo: '◀', hi: '▶' },
-    { id: 'twist', label: 'Twist', min: -40, max: 40, def: 0, lo: '◀', hi: '▶' },
+/*
+ * Blocks that cannot simply be squeezed: the waist is so much narrower than
+ * the ribs and hips that the obliques need their own, tighter wrap.
+ * These stations are already in female proportions.
+ */
+const FEMALE_PATHS: Record<string, PathPoint[]> = {
+  // each station sits on the corner between the front-side and side planes of the block beneath
+  obliques: [
+    P('ribs', 1.2, 3.05, 0.7, 0.5, 0.07, { n: [0.92, 0, 0.38], curl: 1.2 }),
+    P('ribs', 1.15, 2.5, 0.4, 0.68, 0.11, { n: [0.92, 0, 0.38], curl: 1.6 }),
+    P('w@0.6', 0.93, 2.0, 0.4, 0.58, 0.12, { n: [0.92, 0, 0.38], curl: 1.6 }),
+    P('w@0.3', 0.95, 1.55, 0.4, 0.6, 0.14, { n: [0.92, 0, 0.38], curl: 1.6 }),
+    P('pelvis', 1.47, 1.15, 0.35, 0.45, 0.07, { n: [0.92, 0, 0.38], curl: 1.0 }),
   ],
-  presets: [
-    { label: 'Upright', pose: { bend: 0, lean: 0, twist: 0 } },
-    { label: 'Crunch', pose: { bend: 38, lean: 0, twist: 0 } },
-    { label: 'Arch', pose: { bend: -20, lean: 0, twist: 0 } },
-    { label: 'Side bend', pose: { bend: 0, lean: 26, twist: 0 } },
-    { label: 'Twist', pose: { bend: 5, lean: 0, twist: 36 } },
-  ],
-  groups: [
-    {
-      id: 'pecs',
-      name: 'Chest',
-      color: '#ef86b4',
-      real: 'Pectoralis major',
-      where: 'Collarbone + breastbone → front of the upper arm, tucked under the deltoid.',
-      shape: 'A thick, slightly squashed box whose outer corner is pulled out to the arm, like a fan.',
-      move: 'It belongs to the rib cage, so it tilts and turns with the ribs - never with the hips.',
-    },
-    {
-      id: 'delts',
-      name: 'Deltoid',
-      color: '#ffd166',
-      real: 'Deltoid',
-      where: 'Outer collarbone + shoulder blade → halfway down the outside of the upper arm.',
-      shape: 'A shoulder pad: an upside-down teardrop that caps the corner of the torso.',
-      move: 'Chest slides under its front edge, the back muscles slide under its back edge.',
-    },
-    {
-      id: 'abs',
-      name: 'Abs',
-      color: '#6fb8ec',
-      real: 'Rectus abdominis',
-      where: 'Lower ribs → pubic bone.',
-      shape: 'Two long strips of stacked pillows. The guide lines mark where the pillows divide.',
-      move: 'Crunch and they squash short and thick; arch back and they stretch long and flat.',
-    },
-    {
-      id: 'obliques',
-      name: 'Obliques',
-      color: '#a9dd78',
-      real: 'External obliques',
-      where: 'Side of the lower ribs → top rim of the hip bone.',
-      shape: 'A curved sheet wrapping the waist, ending in a soft bulge that sits on the hip bone.',
-      move: 'Lean sideways: one side pinches into folds, the other pulls taut. Twist: they spiral.',
-    },
-    {
-      id: 'serratus',
-      name: 'Serratus',
-      color: '#f5a25a',
-      real: 'Serratus anterior',
-      where: 'Side of the ribs, under the armpit, between chest and lats.',
-      shape: 'A row of little finger shapes pointing forward and down, like a zipper against the obliques.',
-      move: 'Mostly hidden by the arm - you see it when the arm lifts.',
-    },
-    {
-      id: 'neck',
-      name: 'Neck strap',
-      color: '#c9a0f0',
-      real: 'Sternocleidomastoid',
-      where: 'Behind the ear → the notch between the collarbones.',
-      shape: 'A slim strap on each side; together they make a V on the front of the neck.',
-      move: 'The V always points at the pit of the neck, wherever the rib cage goes.',
-    },
-    {
-      id: 'traps',
-      name: 'Trapezius',
-      color: '#a2a9f2',
-      real: 'Trapezius (upper + middle / lower)',
-      where: 'Skull and spine → shoulder blade and outer collarbone.',
-      shape: 'A kite on the upper back, plus two sloping wedges from neck to shoulder that you also see from the front.',
-      move: 'The kite stays glued to the rib cage. Its bottom tip points at the middle of the back.',
-    },
-    {
-      id: 'lats',
-      name: 'Lats',
-      color: '#7fd9a4',
-      real: 'Latissimus dorsi',
-      where: 'Lower spine and hip rim → sweeps up into the armpit, onto the arm.',
-      shape: 'A big triangle sheet: wide and thin at the bottom, narrow and thick at the armpit.',
-      move: 'It links hips to arm, so it stretches on the outside of a side bend and twists like a towel.',
-    },
-    {
-      id: 'scap',
-      name: 'Shoulder blade',
-      color: '#6fb8ec',
-      real: 'Infraspinatus + teres major / minor',
-      where: 'Shoulder blade → top of the upper arm.',
-      shape: 'A chunky block filling the gap between trapezius, deltoid and lats.',
-      move: 'Marks where the shoulder blade is. Its lower edge sits on top of the lats.',
-    },
-    {
-      id: 'erectors',
-      name: 'Spine columns',
-      color: '#f0719f',
-      real: 'Erector spinae',
-      where: 'Back of the hip bone → up along both sides of the spine.',
-      shape: 'Two ropes with a groove (the spine) between them. Thickest in the small of the back.',
-      move: 'Arch back and they bunch up; crunch forward and they stretch and flatten.',
-    },
-  ],
-  sweeps,
-  drives: (pose) => ({ bend: pose.bend / 40 }),
-  frames: (pose) =>
-    makeFrames((name, k, get) => {
-      switch (name) {
-        case 'w':
-          if (k === 0) return IDENTITY
-          return mul(
-            translate(...WAIST),
-            rotX(pose.bend * DEG * k),
-            rotZ(-pose.lean * DEG * k),
-            rotY(pose.twist * DEG * k),
-            translate(-WAIST[0], -WAIST[1], -WAIST[2]),
-          )
-        case 'ribs':
-          return get('w@1')
-        case 'shL':
-          return mul(get('w@1'), translate(...SHOULDER))
-        case 'shR':
-          return mul(get('w@1'), translate(-SHOULDER[0], SHOULDER[1], SHOULDER[2]))
-        case 'armL':
-          return mul(get('shL'), rotZ(ARM_OUT))
-        case 'armR':
-          return mul(get('shR'), rotZ(-ARM_OUT))
-        default:
-          return IDENTITY
-      }
-    }),
 }
+
+function feminize(def: SweepDef): SweepDef {
+  const own = FEMALE_PATHS[def.id]
+  if (own) return { ...def, path: own }
+  const soft = def.kind === 'muscle' || def.kind === 'tendon'
+  return {
+    ...def,
+    path: def.path.map((pt) => {
+      const base = pt.f.split('@')[0]
+      let kx = 1
+      let kz = 1
+      if (base === 'ribs') {
+        kx = pt.p[1] > 5.4 ? 0.93 : RIBS_X
+        kz = 0.93
+      } else if (base === 'w') {
+        kx = WAIST_X
+        // the spine columns bridge the hollow of the back, so they keep their depth
+        kz = def.id === 'erector' ? 1 : 0.9
+      } else if (base === 'pelvis') {
+        kx = HIPS_X
+      }
+      const moved: PathPoint = { ...pt, p: [pt.p[0] * kx, pt.p[1], pt.p[2] * kz] }
+      if (soft) return resize(moved, Math.min(kx, 0.93), def.group === 'pecs' ? 0.55 : 0.72)
+      if (MIDLINE.has(def.id)) return resize(moved, kx, kz)
+      if (def.id === 'arm') return resize(moved, 0.8, 0.8)
+      return moved
+    }),
+  }
+}
+
+const breast: SweepDef = {
+  id: 'breast',
+  group: 'breast',
+  kind: 'muscle',
+  path: [
+    P('ribs', 0.5, 4.36, 1.0, 0.14, 0.04, { n: [0, 0.3, 0.95] }),
+    P('ribs', 0.58, 4.0, 1.07, 0.32, 0.22, { n: [0.1, 0.1, 1] }),
+    P('ribs', 0.64, 3.66, 1.08, 0.38, 0.36, { n: [0.15, -0.1, 1] }),
+    P('ribs', 0.64, 3.38, 1.0, 0.24, 0.14, { n: [0.1, -0.5, 0.85] }),
+  ],
+  label: 2,
+}
+
+const breastGroup: GroupDef = {
+  id: 'breast',
+  name: 'Breast',
+  color: '#ffd166',
+  real: 'Fat and gland, not muscle - it sits on top of the chest muscle',
+  where: 'On the lower, outer part of the chest block; the top blends in below the collarbone.',
+  shape: 'A water-balloon teardrop: flat slope on top, full and round underneath. Each one points slightly outward.',
+  move: 'It is attached to the rib cage, so it tilts and turns with the ribs. The chest muscle still shows above and towards the armpit.',
+}
+
+const groups: GroupDef[] = [
+  {
+    id: 'pecs',
+    name: 'Chest',
+    color: '#ef86b4',
+    real: 'Pectoralis major',
+    where: 'Collarbone + breastbone → front of the upper arm, tucked under the deltoid.',
+    shape: 'A thick, slightly squashed box whose outer corner is pulled out to the arm, like a fan.',
+    move: 'It belongs to the rib cage, so it tilts and turns with the ribs - never with the hips.',
+  },
+  {
+    id: 'delts',
+    name: 'Deltoid',
+    color: '#f5a25a',
+    real: 'Deltoid',
+    where: 'Outer collarbone + shoulder blade → halfway down the outside of the upper arm.',
+    shape: 'A shoulder pad: an upside-down teardrop that caps the corner of the torso.',
+    move: 'Chest slides under its front edge, the back muscles slide under its back edge.',
+  },
+  {
+    id: 'abs',
+    name: 'Abs',
+    color: '#6fb8ec',
+    real: 'Rectus abdominis',
+    where: 'Lower ribs → pubic bone.',
+    shape: 'Two long strips of stacked pillows. The guide lines mark where the pillows divide.',
+    move: 'Crunch and they squash short and thick; arch back and they stretch long and flat.',
+  },
+  {
+    id: 'obliques',
+    name: 'Obliques',
+    color: '#a9dd78',
+    real: 'External obliques',
+    where: 'Side of the lower ribs → top rim of the hip bone.',
+    shape: 'A curved sheet wrapping the waist, ending in a soft bulge that sits on the hip bone.',
+    move: 'Lean sideways: one side pinches into folds, the other pulls taut. Twist: they spiral.',
+  },
+  {
+    id: 'serratus',
+    name: 'Serratus',
+    color: '#f0719f',
+    real: 'Serratus anterior',
+    where: 'Side of the ribs, under the armpit, between chest and lats.',
+    shape: 'A row of little finger shapes pointing forward and down, like a zipper against the obliques.',
+    move: 'Mostly hidden by the arm - you see it when the arm lifts.',
+  },
+  {
+    id: 'neck',
+    name: 'Neck strap',
+    color: '#c9a0f0',
+    real: 'Sternocleidomastoid',
+    where: 'Behind the ear → the notch between the collarbones.',
+    shape: 'A slim strap on each side; together they make a V on the front of the neck.',
+    move: 'The V always points at the pit of the neck, wherever the rib cage goes.',
+  },
+  {
+    id: 'traps',
+    name: 'Trapezius',
+    color: '#a2a9f2',
+    real: 'Trapezius (upper + middle / lower)',
+    where: 'Skull and spine → shoulder blade and outer collarbone.',
+    shape: 'A kite on the upper back, plus two sloping wedges from neck to shoulder that you also see from the front.',
+    move: 'The kite stays glued to the rib cage. Its bottom tip points at the middle of the back.',
+  },
+  {
+    id: 'lats',
+    name: 'Lats',
+    color: '#7fd9a4',
+    real: 'Latissimus dorsi',
+    where: 'Lower spine and hip rim → sweeps up into the armpit, onto the arm.',
+    shape: 'A big triangle sheet: wide and thin at the bottom, narrow and thick at the armpit.',
+    move: 'It links hips to arm, so it stretches on the outside of a side bend and twists like a towel.',
+  },
+  {
+    id: 'scap',
+    name: 'Shoulder blade',
+    color: '#6fb8ec',
+    real: 'Infraspinatus + teres major / minor',
+    where: 'Shoulder blade → top of the upper arm.',
+    shape: 'A chunky block filling the gap between trapezius, deltoid and lats.',
+    move: 'Marks where the shoulder blade is. Its lower edge sits on top of the lats.',
+  },
+  {
+    id: 'erectors',
+    name: 'Spine columns',
+    color: '#ffd166',
+    real: 'Erector spinae',
+    where: 'Back of the hip bone → up along both sides of the spine.',
+    shape: 'Two ropes with a groove (the spine) between them. Thickest in the small of the back.',
+    move: 'Arch back and they bunch up; crunch forward and they stretch and flatten.',
+  },
+]
+
+function build(female: boolean): RigDef {
+  const shape = female ? feminize : (d: SweepDef) => d
+  const leftSide = [...left.map(shape), ...(female ? [breast] : [])]
+  // labels read the left copy first, so list it first within each group
+  const sweeps: SweepDef[] = [...middle.map(shape), ...leftSide, ...leftSide.map(mirror)]
+  const shoulderX = SHOULDER[0] * (female ? RIBS_X : 1)
+
+  return {
+    id: 'torso',
+    controls: [
+      { id: 'bend', label: 'Bend forward / back', min: -22, max: 40, def: 0, lo: 'arch back', hi: 'crunch' },
+      { id: 'lean', label: 'Lean sideways', min: -28, max: 28, def: 0, lo: '◀', hi: '▶' },
+      { id: 'twist', label: 'Twist', min: -40, max: 40, def: 0, lo: '◀', hi: '▶' },
+    ],
+    presets: [
+      { label: 'Upright', pose: { bend: 0, lean: 0, twist: 0 } },
+      { label: 'Crunch', pose: { bend: 38, lean: 0, twist: 0 } },
+      { label: 'Arch', pose: { bend: -20, lean: 0, twist: 0 } },
+      { label: 'Side bend', pose: { bend: 0, lean: 26, twist: 0 } },
+      { label: 'Twist', pose: { bend: 5, lean: 0, twist: 36 } },
+    ],
+    groups: female ? [breastGroup, ...groups] : groups,
+    sweeps,
+    drives: (pose) => ({ bend: pose.bend / 40 }),
+    frames: (pose) =>
+      makeFrames((name, k, get) => {
+        switch (name) {
+          case 'w':
+            if (k === 0) return IDENTITY
+            return mul(
+              translate(...WAIST),
+              rotX(pose.bend * DEG * k),
+              rotZ(-pose.lean * DEG * k),
+              rotY(pose.twist * DEG * k),
+              translate(-WAIST[0], -WAIST[1], -WAIST[2]),
+            )
+          case 'ribs':
+            return get('w@1')
+          case 'shL':
+            return mul(get('w@1'), translate(shoulderX, SHOULDER[1], SHOULDER[2]))
+          case 'shR':
+            return mul(get('w@1'), translate(-shoulderX, SHOULDER[1], SHOULDER[2]))
+          case 'armL':
+            return mul(get('shL'), rotZ(ARM_OUT))
+          case 'armR':
+            return mul(get('shR'), rotZ(-ARM_OUT))
+          default:
+            return IDENTITY
+        }
+      }),
+  }
+}
+
+export const torsoRig = build(false)
+export const torsoRigFemale = build(true)
 
 const SIDES: LessonDef['sides'] = ['Front', 'Left side', 'Back', 'Right side']
 
@@ -466,7 +555,7 @@ export const torsoLessons: LessonDef[] = [
     section: 'Torso',
     title: 'Torso front',
     blurb: 'Two solid masses - rib cage and hips - with a soft, stretchy middle. Chest and shoulders ride on the ribs; abs and obliques bridge the gap.',
-    show: ['pecs', 'delts', 'abs', 'obliques', 'serratus', 'neck', 'traps'],
+    show: ['breast', 'pecs', 'delts', 'abs', 'obliques', 'serratus', 'neck', 'traps'],
     view: { target: [0, 3.2, 0], fit: [6.2, 9.4], az: 20, el: 4 },
     sides: SIDES,
     tips: [
