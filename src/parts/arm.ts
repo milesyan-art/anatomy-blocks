@@ -52,7 +52,7 @@ const sweeps: SweepDef[] = [
     id: 'clavicle',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     path: [
       P('sh', -1.55, 0.22, 0.48, 0.09, 0.08, { n: UP }),
       P('sh', -0.95, 0.3, 0.52, 0.07, 0.06, { n: UP }),
@@ -64,7 +64,7 @@ const sweeps: SweepDef[] = [
     id: 'scapula-spine',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     path: [
       P('sh', 0.3, 0.42, -0.12, 0.12, 0.05, { n: UP }),
       P('sh', -0.15, 0.36, -0.42, 0.07, 0.07, { n: UP }),
@@ -86,7 +86,7 @@ const sweeps: SweepDef[] = [
     id: 'humerus',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     path: [
       P('hum', -0.12, 0.22, -0.02, 0.1, 0.1, { n: FRONT }),
       P('hum', -0.1, 0.05, -0.02, 0.27, 0.25, { n: FRONT }),
@@ -104,7 +104,7 @@ const sweeps: SweepDef[] = [
     id: 'ulna',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     path: [
       P('fa', -0.05, 0.3, -0.2, 0.1, 0.08, { n: FRONT }),
       P('fa', -0.05, 0.12, -0.2, 0.15, 0.14, { n: FRONT }),
@@ -119,7 +119,7 @@ const sweeps: SweepDef[] = [
     id: 'radius',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     path: [
       P('rad', 0.21, -0.05, 0.02, 0.12, 0.12, { n: FRONT }),
       P('rad', 0.21, -0.17, 0.02, 0.125, 0.125, { n: FRONT }),

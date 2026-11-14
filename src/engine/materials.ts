@@ -1,8 +1,8 @@
 import { BackSide, Color, GreaterDepth, MeshBasicMaterial, ShaderMaterial } from 'three'
 
 export const PAPER = '#e7e6e1'
-export const BONE = '#f6f1e3'
-export const BONE_INK = '#b9ad94'
+export const BONE = '#fdfdfa'
+export const BONE_INK = '#343852'
 
 /** A darker, punchier version of a fill colour - used for outlines and guide lines. */
 export function inkOf(fill: string): Color {
@@ -112,7 +112,7 @@ export function makeGhost(): MeshBasicMaterial {
   return new MeshBasicMaterial({
     color: BONE,
     transparent: true,
-    opacity: 0.3,
+    opacity: 0.26,
     depthFunc: GreaterDepth,
     depthWrite: false,
   })

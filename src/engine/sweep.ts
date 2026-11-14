@@ -44,6 +44,26 @@ const SECTIONS: Record<SectionName, UV[]> = {
     [1, -1],
   ],
   round: round(8),
+  // carved-stick look for limb cores
+  hex: [
+    [0.5, 1],
+    [-0.5, 1],
+    [-1, 0],
+    [-0.5, -1],
+    [0.5, -1],
+    [1, 0],
+  ],
+  // a box with its corners shaved - for the big masses (ribs, hips, head)
+  crate: [
+    [0.7, 1],
+    [-0.7, 1],
+    [-1, 0.7],
+    [-1, -0.7],
+    [-0.7, -1],
+    [0.7, -1],
+    [1, -0.7],
+    [1, 0.7],
+  ],
   sheet: sheet(5),
   sheet7: sheet(7),
 }

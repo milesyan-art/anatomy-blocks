@@ -6,11 +6,18 @@ and sliders to bend and twist it so you can watch the blocks change.
 
 Parts so far:
 
-| Section | Lessons                         | You can move                       |
-| ------- | ------------------------------- | ---------------------------------- |
-| Arm     | Forearm, Upper arm, Whole arm   | bend the elbow, twist the forearm  |
-| Leg     | Thigh, Lower leg, Whole leg     | bend the knee, point the foot      |
-| Torso   | Front, Back                     | bend, lean sideways, twist         |
+| Section | Lessons                             | You can move                               |
+| ------- | ----------------------------------- | ------------------------------------------ |
+| Arm     | Forearm, Upper arm, Whole arm, Hand | elbow + forearm twist; fingers and thumb   |
+| Leg     | Thigh, Lower leg, Whole leg, Foot   | knee + ankle; ankle and toes               |
+| Torso   | Front, Back                         | bend, lean sideways, twist                 |
+
+A **Male / Female** switch re-proportions every part: the female figure has
+narrower ribs and shoulders, a pinched waist, wider hips, slimmer blocks and a
+breast form on the chest.
+
+The white shapes underneath (rib cage, hip block, limb cores, hands, feet) are
+deliberately stylised mannequin blocks, not realistic bones.
 
 ## Run it
 
@@ -41,8 +48,10 @@ src/
     frames.ts     small matrix helpers + the P() shorthand
     materials.ts  flat "drawing" shading, outlines, guide lines, ghost bones
   parts/
-    arm.ts  leg.ts  torso.ts   one file per rig: bones, muscles, text, lessons
-    index.ts                   the list the part picker reads
+    arm.ts  hand.ts  leg.ts  foot.ts  torso.ts
+                  one file per rig: base blocks, muscles, text, lessons
+    body.ts       helpers that turn a rig into its female version
+    index.ts      the list the part picker reads
   components/
     Viewer.tsx    the 3D stage: camera, model, labels
   App.tsx         part picker, sliders, muscle list

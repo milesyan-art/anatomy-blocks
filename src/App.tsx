@@ -3,7 +3,8 @@ import type { CSSProperties, ReactNode } from 'react'
 import { Viewer } from './components/Viewer'
 import type { ViewOptions } from './components/Viewer'
 import type { GroupDef, LessonDef, Pose, RigDef, ViewDef } from './engine/types'
-import { LESSONS, RIGS, defaultPose } from './parts'
+import { LESSONS, RIG_IDS, defaultPose, getRig } from './parts'
+import type { Body } from './parts'
 
 const SECTIONS = [...new Set(LESSONS.map((l) => l.section))]
 const SIDE_ANGLES = [0, 90, 180, -90]
@@ -17,10 +18,11 @@ function lessonFromHash(): string {
 export default function App() {
   const [lessonId, setLessonId] = useState(lessonFromHash)
   const lesson = LESSONS.find((l) => l.id === lessonId) ?? LESSONS[0]
-  const rig = RIGS[lesson.rig]
+  const [body, setBody] = useState<Body>('male')
+  const rig = getRig(lesson.rig, body)
 
   const [poses, setPoses] = useState<Record<string, Pose>>(() =>
-    Object.fromEntries(Object.values(RIGS).map((r) => [r.id, defaultPose(r)])),
+    Object.fromEntries(RIG_IDS.map((id) => [id, defaultPose(getRig(id, 'male'))])),
   )
   const pose = poses[rig.id]
 
@@ -119,6 +121,19 @@ export default function App() {
             <h1>Block Anatomy</h1>
             <p>one body part at a time</p>
           </div>
+        </div>
+        <div className="body-switch" role="group" aria-label="Body type">
+          {(['male', 'female'] as const).map((b) => (
+            <button
+              key={b}
+              type="button"
+              className={body === b ? 'is-on' : ''}
+              aria-pressed={body === b}
+              onClick={() => setBody(b)}
+            >
+              {b === 'male' ? 'Male' : 'Female'}
+            </button>
+          ))}
         </div>
         <nav className="parts" aria-label="Body parts">
           {SECTIONS.map((section) => (

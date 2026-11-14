@@ -42,7 +42,7 @@ const sweeps: SweepDef[] = [
     id: 'pubis-ischium',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     path: [
       P('pelvis', -0.85, -0.12, 0.6, 0.14, 0.14, { n: UP }),
       P('pelvis', -0.35, 0.05, 0.45, 0.12, 0.13, { n: UP }),
@@ -66,7 +66,7 @@ const sweeps: SweepDef[] = [
     id: 'femur-neck',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     path: [
       P('femur', -0.22, 0.05, 0, 0.12, 0.12, { n: UP }),
       P('femur', -0.05, 0.03, 0, 0.25, 0.25, { n: UP }),
@@ -78,7 +78,7 @@ const sweeps: SweepDef[] = [
     id: 'femur',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     path: [
       P('femur', 0.46, 0.12, -0.03, 0.1, 0.12, { n: FRONT }),
       P('femur', 0.43, -0.15, -0.02, 0.2, 0.2, { n: FRONT }),
@@ -94,7 +94,7 @@ const sweeps: SweepDef[] = [
     id: 'patella',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     seg: 2,
     path: [
       P('tibia', 0, 0.42, 0.42, 0.1, 0.05, { n: FRONT }),
@@ -106,7 +106,7 @@ const sweeps: SweepDef[] = [
     id: 'tibia',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     path: [
       P('tibia', 0, -0.2, -0.02, 0.42, 0.3, { n: FRONT }),
       P('tibia', 0, -0.45, 0.02, 0.36, 0.28, { n: FRONT }),
@@ -121,7 +121,7 @@ const sweeps: SweepDef[] = [
     id: 'fibula',
     group: 'bone',
     kind: 'bone',
-    section: 'round',
+    section: 'hex',
     path: [
       P('tibia', 0.36, -0.42, -0.18, 0.09, 0.09, { n: FRONT }),
       P('tibia', 0.36, -0.7, -0.18, 0.06, 0.06, { n: FRONT }),

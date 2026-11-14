@@ -122,6 +122,34 @@ input:focus-visible {
   transform: rotate(-4deg) translateX(2px);
 }
 
+.body-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  margin-bottom: 20px;
+  overflow: hidden;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.body-switch button {
+  padding: 5px 10px;
+  font: 500 14px var(--display);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.body-switch button + button {
+  border-left: 2px solid var(--ink);
+}
+
+.body-switch button.is-on {
+  font-weight: 600;
+  background: var(--sun);
+}
+
 .parts-group + .parts-group {
   margin-top: 18px;
 }
@@ -574,6 +602,11 @@ input:focus-visible {
   .parts {
     display: flex;
     gap: 14px;
+  }
+
+  .body-switch {
+    flex: none;
+    margin: 0;
   }
 
   .parts-group {
