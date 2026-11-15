@@ -1,5 +1,6 @@
 import { BufferAttribute, BufferGeometry, CatmullRomCurve3, Sphere, Vector3 } from 'three'
-import type { FrameGetter, SectionName, SweepDef } from './types'
+import { Skin } from './skin'
+import type { Form, FrameGetter, SectionName, SweepDef } from './types'
 
 type UV = [number, number]
 
@@ -66,7 +67,11 @@ const SECTIONS: Record<SectionName, UV[]> = {
   ],
   sheet: sheet(5),
   sheet7: sheet(7),
+  // a finely divided sheet, for wrapping all the way round a form (the rib cage)
+  shell: sheet(11),
 }
+
+const BANDS = new Set<SectionName>(['sheet', 'sheet7', 'shell'])
 
 /**
  * Round off a cross-section for the smooth model: each side is split into
@@ -123,7 +128,7 @@ const _c = new Vector3()
  * The geometry is allocated once; `update` only rewrites the numbers,
  * so dragging a slider stays cheap.
  */
-export class Sweep {
+export class Sweep implements Form {
   readonly def: SweepDef
   readonly geometry = new BufferGeometry()
   /** Where the label points at (top of the fattest station), in rig space. */
@@ -140,6 +145,8 @@ export class Sweep {
   private readonly cw: Float32Array
   private readonly ch: Float32Array
   private readonly cc: Float32Array
+  private readonly ck: Float32Array
+  private readonly cq: Float32Array
   private readonly curve: CatmullRomCurve3
   private readonly centers: Vector3[]
   private readonly tangents: Vector3[]
@@ -169,6 +176,8 @@ export class Sweep {
     this.cw = new Float32Array(n)
     this.ch = new Float32Array(n)
     this.cc = new Float32Array(n)
+    this.ck = new Float32Array(n)
+    this.cq = new Float32Array(n)
     this.curve = new CatmullRomCurve3(this.ctrl, false, 'centripetal')
     this.centers = Array.from({ length: R }, () => new Vector3())
     this.tangents = Array.from({ length: R }, () => new Vector3())
@@ -208,10 +217,32 @@ export class Sweep {
       coord[v * 2] = 0.5
       coord[v * 2 + 1] = 0.5
     }
-    for (let k = 0; k < K; k++) {
-      const k2 = (k + 1) % K
-      index.push(cap0, cap0 + 1 + k2, cap0 + 1 + k)
-      index.push(cap1, cap1 + 1 + k, cap1 + 1 + k2)
+    const section = def.section ?? 'block'
+    if (BANDS.has(section)) {
+      // a band's end is the band itself: stitch its outer side to its inner side.
+      // (A fan from the middle would cover the hollow, and overlap itself once the band curls.)
+      const nb = (SECTIONS[section].length - 2) / 2
+      const sub = smooth ? 3 : 1
+      const e1 = nb * sub
+      const e2 = (2 * nb + 1) * sub
+      const m = (e1 - e2 - 1 + K) % K
+      const A = (j: number) => (e2 + 1 + j) % K
+      const B = (j: number) => (e2 - 1 - j + K) % K
+      const tris: [number, number, number][] = [[B(0), e2, A(0)]]
+      for (let j = 0; j < m - 1; j++) {
+        tris.push([A(j), A(j + 1), B(j + 1)], [A(j), B(j + 1), B(j)])
+      }
+      tris.push([A(m - 1), e1, B(m - 1)])
+      for (const [a, b, c] of tris) {
+        index.push(cap0 + 1 + a, cap0 + 1 + c, cap0 + 1 + b)
+        index.push(cap1 + 1 + a, cap1 + 1 + b, cap1 + 1 + c)
+      }
+    } else {
+      for (let k = 0; k < K; k++) {
+        const k2 = (k + 1) % K
+        index.push(cap0, cap0 + 1 + k2, cap0 + 1 + k)
+        index.push(cap1, cap1 + 1 + k, cap1 + 1 + k2)
+      }
     }
 
     const g = this.geometry
@@ -260,6 +291,8 @@ export class Sweep {
       this.cw[j] = w
       this.ch[j] = h
       this.cc[j] = pt.curl ?? 0
+      this.ck[j] = pt.wide ?? 1
+      this.cq[j] = pt.square ?? 1
     }
     let len = 0
     for (let j = 1; j < this.n; j++) len += this.ctrl[j].distanceTo(this.ctrl[j - 1])
@@ -303,6 +336,8 @@ export class Sweep {
       const w = Math.max(smoothAt(this.cw, s, f) * ws, 0.004)
       const h = Math.max(smoothAt(this.ch, s, f) * hs, 0.004)
       const curl = this.cc[s] + (this.cc[s + 1] - this.cc[s]) * f
+      const wide = this.ck[s] + (this.ck[s + 1] - this.ck[s]) * f
+      const square = this.cq[s] + (this.cq[s + 1] - this.cq[s]) * f
       const T = tangents[i]
       const C = centers[i]
 
@@ -330,10 +365,16 @@ export class Sweep {
           const rad = w / half
           const th = u * half
           const rr = rad + v * h
-          x = rr * Math.sin(th)
-          y = rr * Math.cos(th) - rad
+          let sn = Math.sin(th)
+          let cs = Math.cos(th)
+          if (square !== 1) {
+            sn = Math.sign(sn) * Math.pow(Math.abs(sn), square)
+            cs = Math.sign(cs) * Math.pow(Math.abs(cs), square)
+          }
+          x = rr * sn * wide
+          y = rr * cs - rad
         } else {
-          x = u * w
+          x = u * w * wide
           y = v * h
         }
         const o = (i * K + k) * 3
@@ -350,7 +391,7 @@ export class Sweep {
       centroids[i * 3] = cx / K
       centroids[i * 3 + 1] = cy / K
       centroids[i * 3 + 2] = cz / K
-      maxR = Math.max(maxR, w * 1.3 + h * 1.3)
+      maxR = Math.max(maxR, (w * Math.max(wide, 1) + h) * 1.3)
 
       if (i === this.labelRing) {
         this.anchor.copy(C).addScaledVector(_n, h)
@@ -493,4 +534,9 @@ export class Sweep {
   dispose() {
     this.geometry.dispose()
   }
+}
+
+/** Build the right kind of form for a definition. */
+export function makeForm(def: SweepDef, smooth = false): Form {
+  return def.skin ? new Skin(def, def.skin, smooth) : new Sweep(def, smooth)
 }

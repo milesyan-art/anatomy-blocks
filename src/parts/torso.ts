@@ -1,8 +1,8 @@
 import { Matrix4 } from 'three'
-import { DEG, P, makeFrames, mirrorPoint, mul, rotX, rotY, rotZ, translate } from '../engine/frames'
-import type { GroupDef, LessonDef, PathPoint, RigDef, SweepDef } from '../engine/types'
+import { DEG, P, arc, cage, makeFrames, mirrorPoint, mirrorSkin, mul, rotX, rotY, rotZ, translate } from '../engine/frames'
+import type { GroupDef, LessonDef, PathPoint, RigDef, SkinDef, SkinPoint, SweepDef } from '../engine/types'
 import { resize } from './body'
-import { PELVIS_MIDLINE, pelvisBlocks } from './pelvis'
+import { pelvisBlocks, pelvisBowl } from './pelvis'
 
 /*
  * Torso, facing +Z.   +X = the figure's left   +Y = up
@@ -20,7 +20,7 @@ import { PELVIS_MIDLINE, pelvisBlocks } from './pelvis'
 
 const WAIST: [number, number, number] = [0, 1.6, -0.35]
 const SHOULDER: [number, number, number] = [1.85, 4.55, -0.05]
-const ARM_OUT = 12 * DEG
+const ARM_OUT = 15 * DEG
 const IDENTITY = new Matrix4()
 
 const FRONT: PathPoint['n'] = [0, 0, 1]
@@ -28,47 +28,154 @@ const BACK: PathPoint['n'] = [0, 0, -1]
 const UP: PathPoint['n'] = [0, 1, 0]
 const OUT: PathPoint['n'] = [1, 0, 0]
 
+/*
+ * The spine between the rib cage and the hips, as one bendy block - not a stack of
+ * vertebrae. Each station rides its own share of the waist turn, so it curves with a bend.
+ */
+const spine: SweepDef = {
+  id: 'spine',
+  group: 'bone',
+  kind: 'bone',
+  section: 'crate',
+  path: [
+    P('ribs', 0, 3.05, -0.62, 0.22, 0.24, { n: FRONT }),
+    P('w@0.8', 0, 2.5, -0.58, 0.23, 0.24, { n: FRONT }),
+    P('w@0.5', 0, 1.95, -0.52, 0.25, 0.24, { n: FRONT }),
+    P('w@0.2', 0, 1.45, -0.52, 0.26, 0.24, { n: FRONT }),
+    P('pelvis', 0, 1.0, -0.56, 0.27, 0.22, { n: FRONT }),
+  ],
+}
+
+/*
+ * The rib cage in one piece: a hollow egg, closed round the top, that opens at the
+ * front below the breastbone into the arch of the lower ribs. The back stays nearly
+ * upright and the front does the sloping - as on the real cage - which also keeps
+ * every ring level.
+ *   y, back z, outer width, outer depth (half sizes), half-width of the front gap in degrees
+ */
+const CAGE: [number, number, number, number, number][] = [
+  [5.16, -0.8, 0.58, 0.42, 0],
+  [4.8, -0.86, 1.12, 0.78, 0],
+  [4.15, -0.94, 1.34, 0.94, 0],
+  [3.6, -0.97, 1.38, 0.98, 0],
+  [3.25, -0.97, 1.39, 0.97, 2.5],
+  [2.85, -0.96, 1.36, 0.94, 13.6],
+  [2.45, -0.94, 1.24, 0.89, 31.7],
+  [2.15, -0.9, 1.12, 0.82, 50],
+  [1.98, -0.87, 1.0, 0.75, 65.6],
+]
+
+/** The rib cage's stations, narrowed by kx and made shallower by kz. */
+function ribcage(kx: number, kz: number): PathPoint[] {
+  // a slightly boxy oval: broad, flattish back and sides, like the real cage
+  return CAGE.map(([y, back, w, d, open]) =>
+    cage('ribs', y, (back + d) * kz, w * kx, d * kz, open, 0.1 * kz, 0.78),
+  )
+}
+
+/*
+ * The flank is not swept like the other blocks: it has to hug the ribs, pinch in at
+ * the waist and settle on the hip bone, and a block pushed along a path creases
+ * where those meet. It is a skin instead - a smooth pad pinned to the outline of the
+ * trunk - so each body only has to say what its outline is.
+ *
+ * The trunk seen from above, at a few heights, as a slightly boxy oval:
+ *   y, half width, z of the front, z of the back, z of the widest point, thickness of the pad
+ */
+type Trunk = [number, number, number, number, number, number][]
+
+const TRUNK: Trunk = [
+  [3.45, 1.445, 1.08, -1.02, -0.02, 0.06],
+  [2.85, 1.41, 1.08, -1.02, -0.04, 0.08],
+  [2.45, 1.33, 1.06, -1.0, -0.06, 0.11],
+  [2.05, 1.27, 1.03, -0.98, -0.08, 0.13],
+  [1.78, 1.31, 1.0, -0.98, -0.1, 0.12],
+  // from here down the outline is the hip bone itself: its rim, then its front point
+  [1.5, 1.43, 0.98, -0.98, -0.12, 0.08],
+  [1.26, 1.39, 0.95, -0.96, -0.1, 0.08],
+  [0.81, 1.37, 0.9, -0.95, -0.1, 0.07],
+  [0.38, 1.3, 0.8, -0.95, -0.1, 0.05],
+  [0.0, 1.1, 0.68, -0.95, -0.1, 0.04],
+]
+
+const TRUNK_FEMALE: Trunk = [
+  [3.45, 1.26, 1.0, -0.95, -0.02, 0.05],
+  [2.85, 1.23, 1.0, -0.95, -0.04, 0.06],
+  [2.45, 1.12, 0.97, -0.94, -0.06, 0.08],
+  [2.15, 1.04, 0.94, -0.93, -0.08, 0.1],
+  [1.85, 1.1, 0.92, -0.94, -0.1, 0.1],
+  [1.5, 1.33, 0.9, -0.96, -0.12, 0.07],
+  [1.26, 1.3, 0.89, -0.96, -0.1, 0.07],
+  [0.81, 1.28, 0.88, -0.95, -0.1, 0.06],
+  [0.38, 1.24, 0.8, -0.95, -0.1, 0.045],
+  [0.0, 1.08, 0.68, -0.95, -0.1, 0.035],
+]
+
+/** How boxy the oval is (1 = a true oval; smaller = flatter front, side and back). */
+const TRUNK_SQUARE = 0.8
+
+/**
+ * The columns of the flank's grid, from the edge of the abs round to the back.
+ * Each is: angle round the trunk and height at its top, then at its bottom
+ * (degrees; 90 = front, 0 = straight out to the side, -90 = back).
+ *
+ * The bottom ends trace the rim of the hip bone from the back to its front point,
+ * then run down the groin line - so the rows of the grid fan down and forward,
+ * the way the muscle's fibres do ("hands in pockets").
+ */
+const FLANK: [number, number, number, number][] = [
+  [68, 3.42, 84, 0.0],
+  [50, 3.36, 64, 0.38],
+  [33, 3.28, 33, 0.81],
+  [15, 3.2, 13, 1.26],
+  [-5, 3.12, -6, 1.5],
+  [-26, 3.05, -28, 1.5],
+  [-46, 3.0, -50, 1.5],
+  // far enough round to tuck under the spine columns, so the back never shows a gap
+  [-70, 2.95, -73, 1.46],
+]
+const FLANK_ROWS = 7
+
+/** A point on the outline of the trunk: `deg` round it, at height y. Rides the waist by its height. */
+function onTrunk(trunk: Trunk, deg: number, y: number): SkinPoint {
+  let i = 0
+  while (i < trunk.length - 2 && y < trunk[i + 1][0]) i++
+  const a = trunk[i]
+  const b = trunk[i + 1]
+  const t = Math.min(1, Math.max(0, (y - a[0]) / (b[0] - a[0])))
+  const at = (k: number) => a[k] + (b[k] - a[k]) * t
+  const [half, front, back, mid, h] = [at(1), at(2), at(3), at(4), at(5)]
+  const th = deg * DEG
+  const c = Math.pow(Math.abs(Math.cos(th)), TRUNK_SQUARE)
+  const s = Math.pow(Math.abs(Math.sin(th)), TRUNK_SQUARE)
+  const z = th >= 0 ? mid + (front - mid) * s : mid - (mid - back) * s
+  // the waist turns a little at a time, from the hip bone (0) up to the ribs (1)
+  const k = Math.round(Math.min(1, Math.max(0, (y - 1.2) / (3.05 - 1.2))) * 100) / 100
+  return { f: k === 0 ? 'pelvis' : k === 1 ? 'ribs' : `w@${k}`, p: [half * c, y, z], h }
+}
+
+function flank(trunk: Trunk): SkinDef {
+  return {
+    rows: Array.from({ length: FLANK_ROWS }, (_, r) => {
+      const t = r / (FLANK_ROWS - 1)
+      return FLANK.map(([a0, y0, a1, y1]) => onTrunk(trunk, a0 + (a1 - a0) * t, y0 + (y1 - y0) * t))
+    }),
+    // five planes round the waist, like the strips of a swept sheet
+    lines: [1.5, 3, 4.5, 6],
+    label: [2, 3],
+  }
+}
+
 /** Things that sit on the midline (not mirrored). */
 const middle: SweepDef[] = [
   ...pelvisBlocks(),
-  {
-    id: 'spine',
-    group: 'bone',
-    kind: 'bone',
-    section: 'hex',
-    path: [
-      P('pelvis', 0, 1.0, -0.7, 0.22, 0.2, { n: FRONT }),
-      P('w@0.5', 0, 1.6, -0.58, 0.2, 0.2, { n: FRONT }),
-      P('ribs', 0, 2.3, -0.7, 0.2, 0.2, { n: FRONT }),
-    ],
-  },
+  spine,
   {
     id: 'ribcage',
     group: 'bone',
     kind: 'bone',
-    section: 'crate',
-    path: [
-      P('ribs', 0, 5.12, -0.1, 0.6, 0.42, { n: FRONT }),
-      P('ribs', 0, 4.75, -0.05, 1.18, 0.78, { n: FRONT }),
-      P('ribs', 0, 4.0, 0, 1.36, 0.95, { n: FRONT }),
-      P('ribs', 0, 3.2, 0.05, 1.36, 1.0, { n: FRONT }),
-      P('ribs', 0, 2.5, 0.05, 1.26, 0.93, { n: FRONT }),
-      P('ribs', 0, 2.05, 0, 1.08, 0.78, { n: FRONT }),
-    ],
-  },
-  {
-    // the soft middle between the two hard masses
-    id: 'belly',
-    group: 'belly',
-    kind: 'prop',
-    // rounder than the hard masses, so the waist muscles can wrap it
-    section: 'round',
-    path: [
-      P('ribs', 0, 2.5, 0.05, 1.3, 0.9, { n: FRONT }),
-      P('w@0.6', 0, 2.0, 0.08, 1.14, 0.84, { n: FRONT }),
-      P('w@0.3', 0, 1.55, 0.08, 1.16, 0.84, { n: FRONT }),
-      P('pelvis', 0, 1.1, -0.05, 1.3, 0.78, { n: FRONT }),
-    ],
+    section: 'shell',
+    path: ribcage(1, 1),
   },
   {
     id: 'sternum',
@@ -77,9 +184,9 @@ const middle: SweepDef[] = [
     section: 'box',
     seg: 2,
     path: [
-      P('ribs', 0, 4.92, 0.6, 0.24, 0.04, { n: [0, 0.3, 0.95] }),
-      P('ribs', 0, 4.1, 0.9, 0.16, 0.04, { n: [0, 0.2, 0.98] }),
-      P('ribs', 0, 3.4, 1.02, 0.08, 0.04, { n: FRONT }),
+      P('ribs', 0, 4.92, 0.63, 0.24, 0.04, { n: [0, 0.3, 0.95] }),
+      P('ribs', 0, 4.1, 0.93, 0.16, 0.04, { n: [0, 0.2, 0.98] }),
+      P('ribs', 0, 3.4, 1.04, 0.08, 0.04, { n: FRONT }),
     ],
   },
   {
@@ -88,12 +195,14 @@ const middle: SweepDef[] = [
     kind: 'prop',
     section: 'crate',
     path: [
-      P('ribs', 0, 5.0, -0.22, 0.3, 0.3, { n: FRONT }),
-      P('ribs', 0, 5.72, -0.06, 0.27, 0.3, { n: FRONT }),
-      P('ribs', 0, 5.95, 0.12, 0.36, 0.46, { n: FRONT }),
-      P('ribs', 0, 6.45, 0.12, 0.5, 0.62, { n: FRONT }),
-      P('ribs', 0, 7.05, 0.06, 0.53, 0.67, { n: FRONT }),
-      P('ribs', 0, 7.5, 0, 0.4, 0.52, { n: FRONT }),
+      // a strong neck column, leaning forward out of the rib cage
+      P('ribs', 0, 4.95, -0.2, 0.4, 0.38, { n: FRONT }),
+      P('ribs', 0, 5.65, -0.06, 0.35, 0.35, { n: FRONT }),
+      P('ribs', 0, 6.0, 0.12, 0.42, 0.5, { n: FRONT }),
+      P('ribs', 0, 6.55, 0.16, 0.57, 0.7, { n: FRONT }),
+      P('ribs', 0, 7.2, 0.1, 0.6, 0.74, { n: FRONT }),
+      P('ribs', 0, 7.68, 0.02, 0.46, 0.58, { n: FRONT }),
+      P('ribs', 0, 7.88, -0.02, 0.24, 0.32, { n: FRONT }),
     ],
   },
 ]
@@ -107,21 +216,22 @@ const left: SweepDef[] = [
     kind: 'bone',
     section: 'hex',
     path: [
-      P('ribs', 0.14, 4.9, 0.62, 0.08, 0.07, { n: UP }),
-      P('ribs', 0.9, 4.97, 0.62, 0.07, 0.06, { n: UP }),
-      P('ribs', 1.5, 5.03, 0.3, 0.07, 0.06, { n: UP }),
-      P('ribs', 1.98, 5.0, -0.08, 0.1, 0.06, { n: UP }),
+      P('ribs', 0.13, 4.92, 0.62, 0.09, 0.08, { n: UP }),
+      P('ribs', 0.8, 4.98, 0.66, 0.085, 0.075, { n: UP }),
+      P('ribs', 1.42, 5.04, 0.36, 0.08, 0.07, { n: UP }),
+      P('ribs', 1.8, 5.0, 0.0, 0.1, 0.07, { n: UP }),
     ],
   },
   {
+    // a triangle on the back of the ribs: upright inner edge, lower tip, outer corner at the shoulder
     id: 'scapula',
     group: 'bone',
     kind: 'bone',
     section: 'box',
     path: [
-      P('ribs', 1.25, 4.75, -0.8, 0.55, 0.04, { n: [0.3, 0, -0.95] }),
-      P('ribs', 1.15, 4.1, -0.92, 0.36, 0.04, { n: [0.3, 0, -0.95] }),
-      P('ribs', 1.05, 3.5, -0.96, 0.08, 0.035, { n: [0.3, 0, -0.95] }),
+      P('ribs', 1.08, 4.72, -0.76, 0.5, 0.045, { n: [0.42, 0, -0.91] }),
+      P('ribs', 1.0, 4.1, -0.86, 0.36, 0.045, { n: [0.36, 0, -0.93] }),
+      P('ribs', 0.86, 3.38, -0.9, 0.06, 0.04, { n: [0.3, 0, -0.95] }),
     ],
   },
   {
@@ -130,10 +240,12 @@ const left: SweepDef[] = [
     kind: 'bone',
     section: 'hex',
     seg: 2,
+    // the ridge across the shoulder blade, ending in the flat tip (acromion) that meets the collarbone
     path: [
-      P('ribs', 0.75, 4.55, -0.95, 0.05, 0.06, { n: UP }),
-      P('ribs', 1.5, 4.85, -0.7, 0.07, 0.07, { n: UP }),
-      P('ribs', 2.0, 4.98, -0.2, 0.12, 0.05, { n: UP }),
+      P('ribs', 0.68, 4.52, -0.98, 0.05, 0.06, { n: UP }),
+      P('ribs', 1.3, 4.78, -0.86, 0.07, 0.09, { n: [0, 0.6, -0.8] }),
+      P('ribs', 1.7, 4.94, -0.42, 0.1, 0.08, { n: UP }),
+      P('ribs', 1.9, 4.96, -0.08, 0.14, 0.06, { n: UP }),
     ],
   },
   {
@@ -142,10 +254,12 @@ const left: SweepDef[] = [
     kind: 'prop',
     section: 'crate',
     path: [
-      P('armL', 0, 0.1, 0, 0.3, 0.32, { n: FRONT }),
-      P('armL', 0.02, -0.8, 0, 0.38, 0.46, { n: FRONT }),
-      P('armL', 0, -1.8, 0, 0.36, 0.44, { n: FRONT }),
-      P('armL', 0, -2.6, 0, 0.32, 0.36, { n: FRONT }),
+      // the ball of the upper arm sits right under the shoulder tip
+      P('armL', 0, 0.3, 0, 0.18, 0.2, { n: FRONT }),
+      P('armL', 0, 0.04, 0, 0.32, 0.36, { n: FRONT }),
+      P('armL', 0.02, -0.8, 0, 0.35, 0.42, { n: FRONT }),
+      P('armL', 0, -1.8, 0, 0.33, 0.4, { n: FRONT }),
+      P('armL', 0, -2.6, 0, 0.29, 0.33, { n: FRONT }),
     ],
   },
 
@@ -157,13 +271,13 @@ const left: SweepDef[] = [
     bulge: 0.6,
     seg: 2,
     path: [
-      P('ribs', 0.3, 3.45, 0.98, 0.26, 0.07, { n: [0, 0.2, 1] }),
-      P('ribs', 0.3, 2.9, 1.06, 0.28, 0.1, { n: FRONT }),
-      P('w@0.75', 0.3, 2.3, 1.04, 0.28, 0.11, { n: FRONT }),
-      P('w@0.5', 0.3, 1.7, 1.0, 0.28, 0.11, { n: FRONT }),
-      P('w@0.25', 0.28, 1.1, 0.96, 0.26, 0.1, { n: FRONT }),
-      P('pelvis', 0.2, 0.4, 0.86, 0.2, 0.08, { n: [0, -0.2, 1] }),
-      P('pelvis', 0.1, -0.12, 0.66, 0.1, 0.06, { n: [0, -0.4, 0.9] }),
+      P('ribs', 0.35, 3.62, 1.04, 0.31, 0.08, { n: [0, 0.25, 1] }),
+      P('ribs', 0.35, 3.05, 1.07, 0.32, 0.12, { n: FRONT }),
+      P('w@0.75', 0.33, 2.42, 1.05, 0.31, 0.13, { n: FRONT }),
+      P('w@0.5', 0.31, 1.78, 1.0, 0.29, 0.12, { n: FRONT }),
+      P('w@0.25', 0.28, 1.14, 0.95, 0.26, 0.1, { n: FRONT }),
+      P('pelvis', 0.2, 0.42, 0.84, 0.2, 0.08, { n: [0, -0.2, 1] }),
+      P('pelvis', 0.1, -0.12, 0.64, 0.1, 0.06, { n: [0, -0.4, 0.9] }),
     ],
     label: 2,
   },
@@ -171,25 +285,22 @@ const left: SweepDef[] = [
     id: 'obliques',
     group: 'obliques',
     kind: 'muscle',
-    section: 'sheet',
     bulge: 0.5,
-    path: [
-      P('ribs', 1.15, 3.05, 0.6, 0.8, 0.08, { n: [0.8, 0, 0.6], curl: 1.6 }),
-      P('w@0.6', 1.15, 2.25, 0.5, 0.95, 0.12, { n: [0.8, 0, 0.6], curl: 1.9 }),
-      P('w@0.2', 1.22, 1.6, 0.42, 0.92, 0.18, { n: [0.85, 0, 0.53], curl: 1.9 }),
-      P('pelvis', 1.25, 1.15, 0.4, 0.7, 0.1, { n: [0.85, 0, 0.53], curl: 1.5 }),
-    ],
-    label: 1,
+    // one pad from the side of the ribs to the rim of the hip bone; see `flank`
+    path: [],
+    skin: flank(TRUNK),
+    label: 0,
   },
   {
     id: 'serratus',
     group: 'serratus',
     kind: 'muscle',
+    section: 'sheet',
     seg: 2,
     path: [
-      P('ribs', 1.38, 3.9, 0.35, 0.3, 0.07, { n: [0.9, 0, 0.44] }),
-      P('ribs', 1.36, 3.4, 0.55, 0.3, 0.09, { n: [0.8, 0, 0.6] }),
-      P('ribs', 1.22, 2.95, 0.72, 0.2, 0.07, { n: [0.7, 0, 0.71] }),
+      arc('ribs', 3.95, 0.3, 0.02, 1.12, -8, 26, 0.08),
+      arc('ribs', 3.5, 0.36, 0.02, 1.06, 2, 42, 0.11),
+      arc('ribs', 3.05, 0.38, 0.0, 1.0, 22, 52, 0.08),
     ],
     label: 1,
   },
@@ -199,10 +310,10 @@ const left: SweepDef[] = [
     kind: 'muscle',
     section: 'sheet',
     path: [
-      P('ribs', 0.12, 4.15, 0.9, 0.72, 0.1, { n: [0, 0.15, 1] }),
-      P('ribs', 0.75, 4.2, 0.98, 0.7, 0.24, { n: [0.15, 0.1, 1], curl: 0.5 }),
-      P('ribs', 1.35, 4.3, 0.75, 0.5, 0.26, { n: [0.5, 0, 0.87], curl: 0.6 }),
-      P('armL', 0.1, -0.6, 0.16, 0.2, 0.1, { n: [0.3, 0, 0.95] }),
+      P('ribs', 0.1, 4.26, 0.98, 0.64, 0.12, { n: [0, 0.1, 1], curl: 0.6 }),
+      P('ribs', 0.72, 4.26, 1.06, 0.68, 0.28, { n: [0.12, 0.04, 1], curl: 1.0 }),
+      P('ribs', 1.3, 4.5, 0.86, 0.38, 0.3, { n: [0.55, 0.05, 0.83], curl: 0.8 }),
+      P('armL', 0.12, -0.55, 0.18, 0.16, 0.12, { n: [0.3, 0, 0.95] }),
     ],
     label: 1,
   },
@@ -212,9 +323,9 @@ const left: SweepDef[] = [
     kind: 'muscle',
     seg: 2,
     path: [
-      P('ribs', 0.14, 4.95, 0.56, 0.07, 0.05, { n: [0.2, 0, 1] }),
-      P('ribs', 0.36, 5.6, 0.2, 0.1, 0.07, { n: [0.8, 0, 0.6] }),
-      P('ribs', 0.5, 6.15, -0.12, 0.08, 0.05, { n: OUT }),
+      P('ribs', 0.14, 4.95, 0.6, 0.08, 0.06, { n: [0.2, 0, 1] }),
+      P('ribs', 0.38, 5.6, 0.26, 0.11, 0.08, { n: [0.7, 0, 0.7] }),
+      P('ribs', 0.5, 6.12, -0.12, 0.09, 0.06, { n: OUT }),
     ],
     label: 1,
   },
@@ -239,10 +350,11 @@ const left: SweepDef[] = [
     kind: 'muscle',
     section: 'sheet',
     path: [
-      P('w@0.4', 0.5, 1.9, -0.95, 0.75, 0.05, { n: BACK }),
-      P('w@0.6', 0.85, 2.2, -0.97, 0.8, 0.1, { n: [0.3, 0, -0.95] }),
-      P('ribs', 1.2, 2.95, -0.85, 0.7, 0.16, { n: [0.55, 0, -0.84], curl: 0.7 }),
-      P('ribs', 1.5, 3.75, -0.45, 0.4, 0.2, { n: [0.85, 0, -0.53], curl: 0.7 }),
+      // narrow at the small of the back, so the two lats make a V
+      P('w@0.3', 0.36, 1.7, -0.97, 0.45, 0.05, { n: BACK }),
+      P('w@0.6', 0.76, 2.3, -0.98, 0.62, 0.1, { n: [0.3, 0, -0.95] }),
+      P('ribs', 1.16, 3.0, -0.86, 0.66, 0.18, { n: [0.55, 0, -0.84], curl: 0.7 }),
+      P('ribs', 1.5, 3.75, -0.45, 0.42, 0.28, { n: [0.85, 0, -0.53], curl: 0.7 }),
       P('armL', -0.1, -0.6, 0, 0.12, 0.07, { n: [-0.7, 0, -0.7] }),
     ],
     label: 2,
@@ -276,10 +388,10 @@ const left: SweepDef[] = [
     group: 'traps',
     kind: 'muscle',
     path: [
-      P('ribs', 0.14, 6.15, -0.3, 0.16, 0.08, { n: [0.2, 0, -1] }),
-      P('ribs', 0.4, 5.55, -0.5, 0.3, 0.12, { n: [0.2, 0.5, -0.85] }),
-      P('ribs', 1.15, 5.12, -0.45, 0.36, 0.12, { n: [0, 0.9, -0.44] }),
-      P('ribs', 1.9, 5.05, -0.15, 0.14, 0.07, { n: [0.2, 0.95, -0.2] }),
+      P('ribs', 0.14, 6.1, -0.42, 0.18, 0.08, { n: [0.2, 0, -1] }),
+      P('ribs', 0.42, 5.58, -0.52, 0.32, 0.18, { n: [0.2, 0.5, -0.85] }),
+      P('ribs', 1.12, 5.16, -0.42, 0.38, 0.2, { n: [0, 0.9, -0.44] }),
+      P('ribs', 1.88, 5.04, -0.12, 0.14, 0.08, { n: [0.2, 0.95, -0.2] }),
     ],
   },
 
@@ -290,11 +402,11 @@ const left: SweepDef[] = [
     kind: 'muscle',
     section: 'sheet7',
     path: [
-      P('shL', 0.12, 0.42, 0, 0.58, 0.1, { n: [0.5, 0.85, 0], curl: 3.2 }),
-      P('shL', 0.28, 0.1, 0, 0.5, 0.23, { n: [1, 0.15, 0], curl: 3.0 }),
-      P('armL', 0.24, -0.5, 0, 0.36, 0.22, { n: OUT, curl: 2.5 }),
-      P('armL', 0.19, -1.0, 0, 0.2, 0.15, { n: OUT, curl: 1.6 }),
-      P('armL', 0.15, -1.42, 0.01, 0.06, 0.05, { n: OUT }),
+      P('shL', 0.12, 0.44, 0, 0.62, 0.12, { n: [0.5, 0.85, 0], curl: 3.2 }),
+      P('shL', 0.3, 0.1, 0, 0.58, 0.3, { n: [1, 0.15, 0], curl: 3.0 }),
+      P('armL', 0.27, -0.5, 0, 0.44, 0.3, { n: OUT, curl: 2.6 }),
+      P('armL', 0.21, -1.02, 0, 0.26, 0.2, { n: OUT, curl: 1.8 }),
+      P('armL', 0.16, -1.48, 0.01, 0.06, 0.05, { n: OUT }),
     ],
     label: 2,
   },
@@ -308,6 +420,7 @@ const mirror = (def: SweepDef): SweepDef => ({
   // only the left copy carries the label
   label: undefined,
   path: def.path.map((pt) => mirrorPoint(pt, toRight)),
+  skin: def.skin && mirrorSkin(def.skin, toRight),
 })
 
 /*
@@ -317,27 +430,24 @@ const mirror = (def: SweepDef): SweepDef => ({
 export const RIBS_X = 0.87
 const WAIST_X = 0.78
 const HIPS_X = 1.07
-const MIDLINE = new Set([...PELVIS_MIDLINE, 'spine', 'ribcage', 'belly', 'sternum', 'head'])
+const RIM_X = 0.93
+/** Pieces whose width is a left-right measure, so it narrows along with the body. */
+const SCALED = new Set(['scapula', 'sternum', 'head'])
 
 /*
- * Blocks that cannot simply be squeezed: the waist is so much narrower than
- * the ribs and hips that the obliques need their own, tighter wrap.
- * These stations are already in female proportions.
+ * Forms that cannot simply be squeezed: the waist is so much narrower than the
+ * ribs and hips that the flank and the rib cage are rebuilt in female proportions.
  */
-const FEMALE_PATHS: Record<string, PathPoint[]> = {
-  // each station sits on the corner between the front-side and side planes of the block beneath
-  obliques: [
-    P('ribs', 1.2, 3.05, 0.7, 0.5, 0.07, { n: [0.92, 0, 0.38], curl: 1.2 }),
-    P('ribs', 1.15, 2.5, 0.4, 0.68, 0.11, { n: [0.92, 0, 0.38], curl: 1.6 }),
-    P('w@0.6', 0.93, 2.0, 0.4, 0.58, 0.12, { n: [0.92, 0, 0.38], curl: 1.6 }),
-    P('w@0.3', 0.95, 1.55, 0.4, 0.6, 0.14, { n: [0.92, 0, 0.38], curl: 1.6 }),
-    P('pelvis', 1.47, 1.15, 0.35, 0.45, 0.07, { n: [0.92, 0, 0.38], curl: 1.0 }),
-  ],
+const FEMALE_FORMS: Record<string, Partial<SweepDef>> = {
+  obliques: { skin: flank(TRUNK_FEMALE) },
+  // a narrower rim, a wider underside: female hips are widest low down, at the top of the thigh
+  pelvis: { path: pelvisBowl(RIM_X, HIPS_X) },
+  ribcage: { path: ribcage(RIBS_X, 0.93) },
 }
 
 function feminize(def: SweepDef): SweepDef {
-  const own = FEMALE_PATHS[def.id]
-  if (own) return { ...def, path: own }
+  const own = FEMALE_FORMS[def.id]
+  if (own) return { ...def, ...own }
   const soft = def.kind === 'muscle' || def.kind === 'tendon'
   return {
     ...def,
@@ -357,7 +467,10 @@ function feminize(def: SweepDef): SweepDef {
       }
       const moved: PathPoint = { ...pt, p: [pt.p[0] * kx, pt.p[1], pt.p[2] * kz] }
       if (soft) return resize(moved, Math.min(kx, 0.93), def.group === 'pecs' ? 0.55 : 0.72)
-      if (MIDLINE.has(def.id)) return resize(moved, kx, kz)
+      // a slimmer, longer-looking neck
+      if (def.id === 'head' && pt.p[1] < 5.9) return resize(moved, 0.8, 0.86)
+      if (SCALED.has(def.id)) return resize(moved, kx, kz)
+      if (def.id === 'spine') return resize(moved, 0.9, 0.9)
       if (def.id === 'arm') return resize(moved, 0.8, 0.8)
       return moved
     }),
@@ -538,6 +651,16 @@ export const torsoRigFemale = build(true)
 
 const SIDES: LessonDef['sides'] = ['Front', 'Left side', 'Back', 'Right side']
 
+/*
+ * Both torso lessons show every muscle of the torso: people turn the model round, and
+ * a bare back (or a bare front) reads as something missing. The two lessons differ in
+ * where the camera starts, what the text is about, and which muscles are listed first -
+ * and each names the other, so the app swaps them as the model is turned.
+ */
+const FRONT_MUSCLES = ['breast', 'pecs', 'delts', 'abs', 'obliques', 'serratus', 'neck', 'traps']
+const BACK_MUSCLES = ['traps', 'delts', 'scap', 'lats', 'erectors', 'obliques']
+const firstThen = (first: string[], rest: string[]) => [...first, ...rest.filter((id) => !first.includes(id))]
+
 export const torsoLessons: LessonDef[] = [
   {
     id: 'torso-front',
@@ -545,8 +668,9 @@ export const torsoLessons: LessonDef[] = [
     section: 'Torso',
     title: 'Torso front',
     blurb: 'Two solid masses - rib cage and hips - with a soft, stretchy middle. Chest and shoulders ride on the ribs; abs and obliques bridge the gap.',
-    show: ['breast', 'pecs', 'delts', 'abs', 'obliques', 'serratus', 'neck', 'traps'],
-    view: { target: [0, 3.2, 0], fit: [6.2, 9.4], az: 20, el: 4 },
+    show: firstThen(FRONT_MUSCLES, BACK_MUSCLES),
+    otherSide: 'torso-back',
+    view: { target: [0, 3.3, 0], fit: [6.2, 9.8], az: 20, el: 4 },
     sides: SIDES,
     tips: [
       'Draw the rib cage and the hip block first. Every pose is just those two boxes tilting against each other.',
@@ -560,8 +684,9 @@ export const torsoLessons: LessonDef[] = [
     section: 'Torso',
     title: 'Torso back',
     blurb: 'A kite on top, two big triangles sweeping up to the armpits, and two ropes along the spine.',
-    show: ['traps', 'delts', 'scap', 'lats', 'erectors', 'obliques'],
-    view: { target: [0, 3.2, 0], fit: [6.2, 9.4], az: 200, el: 4 },
+    show: firstThen(BACK_MUSCLES, FRONT_MUSCLES),
+    otherSide: 'torso-front',
+    view: { target: [0, 3.3, 0], fit: [6.2, 9.8], az: 200, el: 4 },
     sides: SIDES,
     tips: [
       'The spine is a groove, not a ridge - the muscles on both sides stand up higher than the bone.',

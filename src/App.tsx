@@ -4,6 +4,7 @@ import { LightCard } from './components/LightCard'
 import { Viewer } from './components/Viewer'
 import type { ViewOptions } from './components/Viewer'
 import { DEFAULT_LIGHT } from './engine/materials'
+import { wrap180 } from './components/viewStore'
 import { hasSides, sideView } from './engine/mirror'
 import type { LimbSide } from './engine/mirror'
 import type { LightSetting } from './engine/materials'
@@ -16,6 +17,8 @@ import type { Body } from './parts'
 const SECTIONS = [...new Set(LESSONS.map((l) => l.section))]
 const SIDE_ANGLES = [0, 90, 180, -90]
 const DEFAULT_SIDES: NonNullable<LessonDef['sides']> = ['Front', 'Left', 'Back', 'Right']
+/** Degrees the camera must be nearer to the other lesson's view before the app follows it there. */
+const FOLLOW_LEAD = 20
 
 function lessonFromHash(): string {
   const id = window.location.hash.replace('#', '')
@@ -70,6 +73,21 @@ export default function App() {
     setView((v) => ({ def: { ...l.view, roll: 0 }, nonce: v.nonce + 1 }))
     window.history.replaceState(null, '', `#${l.id}`)
   }, [])
+
+  /*
+   * A lesson can have a partner that covers the other side of the same model (torso
+   * front / back). Turn the model far enough to face the partner and the app moves
+   * over to it - title, tips and list - without touching the camera.
+   */
+  const followCamera = (az: number) => {
+    const other = lesson.otherSide && LESSONS.find((l) => l.id === lesson.otherSide)
+    if (!other) return
+    const off = (v: ViewDef) => Math.abs(wrap180(az - v.az))
+    // a clear lead, so it does not flicker back and forth around the side view
+    if (off(other.view) + FOLLOW_LEAD >= off(lesson.view)) return
+    setLessonId(other.id)
+    window.history.replaceState(null, '', `#${other.id}`)
+  }
 
   // follow the address bar (back / forward, or a pasted #link)
   useEffect(() => {
@@ -138,10 +156,13 @@ export default function App() {
 
   const toggle = (key: keyof ViewOptions) => setOptions((o) => ({ ...o, [key]: !o[key] }))
 
+  // listed in the lesson's own order: what it is about first
   const shown = useMemo(
-    () => rig.groups.filter((g) => lesson.show.includes(g.id)),
+    () => lesson.show.flatMap((id) => rig.groups.find((g) => g.id === id) ?? []),
     [rig, lesson],
   )
+  // only some lessons leave muscles out; the others have no neighbours to offer
+  const hasNeighbours = rig.groups.some((g) => !lesson.show.includes(g.id))
   const focus = hovered ?? selected
   const sides = lesson.sides ?? DEFAULT_SIDES
 
@@ -236,6 +257,7 @@ export default function App() {
           gizmo={tr.gizmo}
           shortcuts={tr.shortcuts}
           onHome={goHome}
+          onFace={followCamera}
           onHover={setHovered}
           onSelect={(g) => setSelected((cur) => (g === cur ? null : g))}
         />
@@ -260,9 +282,11 @@ export default function App() {
           <Toggle on={options.labels} onClick={() => toggle('labels')}>
             {tr.labels}
           </Toggle>
-          <Toggle on={options.neighbours} onClick={() => toggle('neighbours')}>
-            {tr.neighbours}
-          </Toggle>
+          {hasNeighbours && (
+            <Toggle on={options.neighbours} onClick={() => toggle('neighbours')}>
+              {tr.neighbours}
+            </Toggle>
+          )}
         </div>
         <p className="stage-hint">{tr.hint}</p>
       </main>

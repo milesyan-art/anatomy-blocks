@@ -122,7 +122,10 @@ void main() {
   vC = coord;
   // where this point sits in the lamp's depth picture, nudged off the surface so a form never shades itself
   vS = uShadowMatrix * (modelMatrix * vec4(position + normal * 0.035, 1.0));
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  // same order of operations as three's own materials, so the see-through bone pass
+  // lands on exactly the same depth as this surface and never flickers through it
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  gl_Position = projectionMatrix * mvPosition;
 }`
 
 const FILL_FRAG = /* glsl */ `
@@ -315,5 +318,9 @@ export function makeGhost(): MeshBasicMaterial {
     opacity: 0.26,
     depthFunc: GreaterDepth,
     depthWrite: false,
+    // only show through when clearly behind something, not on the surface itself
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -4,
   })
 }
