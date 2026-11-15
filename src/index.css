@@ -280,14 +280,21 @@ input:focus-visible {
 
 /* ───────── stage overlays ───────── */
 
+/* left-aligned, so the view gizmo has the top-right corner to itself */
 .stage-top {
   position: absolute;
   top: 14px;
-  left: 50%;
+  left: 14px;
+  right: 176px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.stage-top > * {
+  pointer-events: auto;
 }
 
 .stage-caption {
@@ -314,6 +321,214 @@ input:focus-visible {
   font-size: 12px;
   color: var(--ink-soft);
   pointer-events: none;
+}
+
+/* ───────── view gizmo ───────── */
+
+.gizmo {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  width: 160px;
+  height: 160px;
+  overflow: visible;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.gizmo [tabindex]:focus-visible {
+  outline: none;
+}
+
+.gizmo [tabindex]:focus-visible circle,
+.gizmo .gizmo-arc-hit:focus-visible {
+  stroke: var(--blue);
+}
+
+/* the ball: a flat filled circle */
+.gizmo-ball {
+  fill: rgb(253 252 247 / 0.85);
+  stroke: rgb(31 42 92 / 0.35);
+  stroke-width: 1.5;
+  cursor: grab;
+  transition: fill 0.12s, stroke 0.12s;
+}
+
+.gizmo-ball:hover,
+.gizmo-ball[data-on] {
+  fill: var(--card);
+  stroke: var(--ink);
+}
+
+.gizmo-ball[data-on] {
+  cursor: grabbing;
+}
+
+.gizmo-axis {
+  stroke-width: 3;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.gizmo-dot {
+  cursor: pointer;
+}
+
+.gizmo-dot circle {
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.gizmo-dot.is-hollow circle {
+  fill: var(--card);
+}
+
+.gizmo-dot:hover circle {
+  stroke-width: 3;
+}
+
+.gizmo-dot text {
+  font-family: var(--display);
+  font-weight: 600;
+  fill: var(--ink);
+  text-anchor: middle;
+  dominant-baseline: central;
+  pointer-events: none;
+}
+
+/* the ring and the tilt arc: a steering wheel that turns with the picture */
+.gizmo-ring {
+  fill: none;
+  stroke: rgb(31 42 92 / 0.22);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.gizmo-tick,
+.gizmo-grip {
+  stroke: rgb(31 42 92 / 0.5);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+
+.gizmo-grip {
+  stroke: var(--ink);
+  stroke-width: 1.6;
+}
+
+.gizmo-arc {
+  fill: none;
+  stroke: rgb(31 42 92 / 0.16);
+  stroke-width: 11;
+  stroke-linecap: round;
+  pointer-events: none;
+  transition: stroke 0.12s;
+}
+
+.gizmo-tilt:hover .gizmo-arc,
+.gizmo-tilt[data-on] .gizmo-arc {
+  stroke: rgb(255 216 77 / 0.95);
+}
+
+.gizmo-arc-edge {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.6;
+  pointer-events: none;
+}
+
+.gizmo-arc-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 22;
+  stroke-linecap: round;
+  cursor: grab;
+  pointer-events: stroke;
+}
+
+.gizmo-tilt[data-on] .gizmo-arc-hit {
+  cursor: grabbing;
+}
+
+.gizmo-end,
+.gizmo-home {
+  cursor: pointer;
+}
+
+.gizmo-end circle,
+.gizmo-home circle {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.gizmo-end path,
+.gizmo-home path {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.gizmo-end:hover circle,
+.gizmo-home:hover circle {
+  fill: #fff6cf;
+}
+
+/* level mark: fixed to the screen; turns yellow and becomes a button once tilted */
+.gizmo-level {
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.gizmo-level path {
+  fill: var(--card);
+  stroke: var(--ink-soft);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.gizmo-level[data-off] {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.gizmo-level[data-off] path {
+  fill: var(--sun);
+  stroke: var(--ink);
+}
+
+.gizmo-level[data-hidden] {
+  opacity: 0;
+}
+
+/* the angle tag: shows while tilting, then fades */
+.gizmo-readout {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+
+.gizmo-readout[data-on] {
+  opacity: 1;
+}
+
+.gizmo-readout rect {
+  fill: var(--card);
+  stroke: var(--ink);
+  stroke-width: 1.5;
+}
+
+.gizmo-readout text {
+  font: 600 11.5px var(--display);
+  font-variant-numeric: tabular-nums;
+  fill: var(--ink);
+  text-anchor: middle;
 }
 
 /* ───────── labels on the model ───────── */
@@ -934,9 +1149,14 @@ input:focus-visible {
 
   .stage-top {
     left: 10px;
-    right: 10px;
-    justify-content: center;
-    transform: none;
+    right: 136px;
+  }
+
+  .gizmo {
+    top: 2px;
+    right: 2px;
+    width: 128px;
+    height: 128px;
   }
 
   .stage-bottom {

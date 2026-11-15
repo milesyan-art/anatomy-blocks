@@ -66,7 +66,8 @@ export default function App() {
     setSelected(null)
     setHovered(null)
     document.body.style.cursor = ''
-    setView((v) => ({ def: l.view, nonce: v.nonce + 1 }))
+    // a new lesson starts level
+    setView((v) => ({ def: { ...l.view, roll: 0 }, nonce: v.nonce + 1 }))
     window.history.replaceState(null, '', `#${l.id}`)
   }, [])
 
@@ -108,6 +109,9 @@ export default function App() {
 
   const lookFrom = (az: number) =>
     setView((v) => ({ def: { ...lesson.view, az, el: 4 }, nonce: v.nonce + 1 }))
+
+  // the gizmo's home button: the lesson's starting view, level
+  const goHome = () => setView((v) => ({ def: { ...lesson.view, roll: 0 }, nonce: v.nonce + 1 }))
 
   // the camera glides over to the other limb
   const pickSide = (next: LimbSide) => {
@@ -229,6 +233,8 @@ export default function App() {
           focus={focus}
           view={sideView(view.def, rig, side)}
           viewNonce={view.nonce}
+          gizmo={tr.gizmo}
+          onHome={goHome}
           onHover={setHovered}
           onSelect={(g) => setSelected((cur) => (g === cur ? null : g))}
         />

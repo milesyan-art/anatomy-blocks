@@ -103,6 +103,8 @@ export interface ViewDef {
   az: number
   /** Degrees above the horizon. */
   el: number
+  /** Screen tilt in degrees (+ = picture turned clockwise). Left out = keep the current tilt. */
+  roll?: number
 }
 
 export interface LessonDef {
