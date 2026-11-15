@@ -531,6 +531,93 @@ input:focus-visible {
   text-anchor: middle;
 }
 
+/* ───────── shortcut tips: a "?" under the gizmo ───────── */
+
+.shortcuts {
+  position: absolute;
+  top: 138px;
+  right: 12px;
+  z-index: 3;
+}
+
+.shortcuts-button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font: 600 13px var(--display);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  box-shadow: 1.5px 1.5px 0 var(--ink);
+  cursor: pointer;
+}
+
+.shortcuts-button:hover,
+.shortcuts-button.is-on {
+  background: var(--sun);
+}
+
+.shortcuts-card {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  width: 280px;
+  padding: 12px 14px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.shortcuts-card h3 {
+  margin: 0 0 8px;
+  font: 600 14px var(--display);
+}
+
+.shortcuts-card dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.shortcuts-card dl > div {
+  display: grid;
+  grid-template-columns: 5.5em minmax(0, 1fr);
+  align-items: baseline;
+  gap: 8px;
+}
+
+.shortcuts-card dt {
+  font: 500 12.5px var(--display);
+}
+
+.shortcuts-card dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0;
+}
+
+.shortcuts-card kbd {
+  padding: 0 6px;
+  font: 600 11.5px/1.6 var(--display);
+  color: var(--ink);
+  background: #fff;
+  border: 1.5px solid var(--ink-soft);
+  border-bottom-width: 2.5px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.shortcuts-card p {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+
 /* ───────── labels on the model ───────── */
 
 .labels {
@@ -1157,6 +1244,11 @@ input:focus-visible {
     right: 2px;
     width: 128px;
     height: 128px;
+  }
+
+  .shortcuts {
+    top: 108px;
+    right: 6px;
   }
 
   .stage-bottom {

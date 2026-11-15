@@ -52,6 +52,14 @@ export interface UiText {
     level: string
     home: string
   }
+  /** The "?" card of mouse and key shortcuts under the gizmo. */
+  shortcuts: {
+    button: string
+    title: string
+    /** [what it does, the ways to do it] */
+    rows: [string, string[]][]
+    touch: string
+  }
   moveIt: string
   blocks: string
   tips: string
@@ -111,7 +119,19 @@ const en: UiText = {
   guides: 'Guide lines',
   labels: 'Labels',
   neighbours: 'Neighbours',
-  hint: 'drag to spin · scroll or pinch to zoom · Q / E to tilt',
+  hint: 'drag to spin · right-drag to pan · scroll to zoom · Q / E to tilt',
+  shortcuts: {
+    button: 'Mouse and key shortcuts',
+    title: 'Mouse & keys',
+    rows: [
+      ['Rotate', ['Left-drag', '← → ↑ ↓']],
+      ['Pan', ['Right-drag', 'Shift + drag']],
+      ['Zoom', ['Scroll']],
+      ['Tilt', ['Q', 'E', 'Drag the arc']],
+      ['Start view', ['0']],
+    ],
+    touch: 'On a touch screen: one finger rotates, two fingers pan and zoom, a two-finger twist tilts.',
+  },
   gizmo: {
     label: 'View',
     dots: {

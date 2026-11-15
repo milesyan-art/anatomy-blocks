@@ -59,7 +59,7 @@ Seeing *why* a shape changes is the fastest way to draw it from imagination.
 1. **[Open the app.](https://anatomy-blocks.vercel.app)** Nothing to install.
 2. **Pick a body part** from the list on the left. For an arm or leg, choose
    **Left** or **Right**.
-3. **Drag** to spin it. **Scroll** or **pinch** to zoom.
+3. **Drag** to spin it. **Right-drag** (or **Shift + drag**) to pan. **Scroll** or **pinch** to zoom. The **?** under the view gizmo lists every shortcut.
 4. **Move the sliders** on the right, or tap a pose button like *Flex!*
 5. **Click any coloured block** to read about it.
 
