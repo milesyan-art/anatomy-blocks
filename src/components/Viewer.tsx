@@ -25,8 +25,12 @@ import type { LimbSide } from '../engine/mirror'
 import { Sweep } from '../engine/sweep'
 import type { GroupDef, LessonDef, Pose, RigDef, Vec3, ViewDef } from '../engine/types'
 import { restPose } from '../parts'
+import type { UiText } from '../i18n'
 import { createLabelStore } from './labels'
 import type { LabelAnchor, LabelStore } from './labels'
+import { ViewGizmo } from './ViewGizmo'
+import { createViewStore, wrap180 } from './viewStore'
+import type { ViewStore } from './viewStore'
 
 export interface ViewOptions {
   muscles: boolean
@@ -48,6 +52,10 @@ interface ViewerProps {
   focus: string | null
   view: ViewDef
   viewNonce: number
+  /** Words on the view gizmo. */
+  gizmo: UiText['gizmo']
+  /** Back to the lesson's starting view, level. */
+  onHome: () => void
   onHover: (group: string | null) => void
   onSelect: (group: string | null) => void
 }
@@ -55,6 +63,7 @@ interface ViewerProps {
 export function Viewer(props: ViewerProps) {
   const { rig, lesson, options, focus, onSelect } = props
   const store = useMemo(() => createLabelStore(), [])
+  const viewStore = useMemo(() => createViewStore(), [])
   const shown = rig.groups.filter((g) => lesson.show.includes(g.id))
 
   return (
@@ -65,33 +74,78 @@ export function Viewer(props: ViewerProps) {
         camera={{ fov: 26, near: 0.5, far: 200, position: [0, 0, 14] }}
         onPointerMissed={() => onSelect(null)}
       >
-        <Orbit view={props.view} nonce={props.viewNonce} />
-        <Lighting light={props.light} />
+        <Orbit view={props.view} nonce={props.viewNonce} store={viewStore} />
+        <Lighting light={props.light} store={viewStore} />
         {props.light.on && <CastShadows />}
         <RigModel {...props} store={store} />
         <LabelProjector store={store} center={props.view.target} />
       </Canvas>
       <LabelLayer store={store} groups={shown} visible={options.labels && options.muscles} focus={focus} onSelect={onSelect} />
+      <ViewGizmo store={viewStore} text={props.gizmo} onHome={props.onHome} />
     </div>
   )
 }
 
 /* ───────────────────────── camera ───────────────────────── */
 
-function Orbit({ view, nonce }: { view: ViewDef; nonce: number }) {
+interface Glide {
+  t0: number
+  ms: number
+  fromT: Vector3
+  toT: Vector3
+  from: Spherical
+  to: Spherical
+  fromRoll: number
+  toRoll: number
+}
+
+/** OrbitControls' own turning steps (left out of its public types). */
+interface Turning {
+  _rotateLeft: (angle: number) => void
+  _rotateUp: (angle: number) => void
+}
+
+const clampEl = (el: number) => Math.max(-89, Math.min(89, el))
+
+/**
+ * On a tilted picture, turn each drag back by the tilt first, so the model moves the
+ * way your hand does on screen. For one pointer move OrbitControls always turns
+ * left-right and then up-down, so hold the first and turn the pair together.
+ */
+function followHand(controls: OrbitControls, roll: () => number) {
+  const t = controls as unknown as Turning
+  const left = t._rotateLeft.bind(controls)
+  const up = t._rotateUp.bind(controls)
+  let held: number | null = null
+  t._rotateLeft = (a) => {
+    if (held !== null) left(held)
+    held = a
+  }
+  t._rotateUp = (b) => {
+    const a = held ?? 0
+    held = null
+    const r = roll() * DEG
+    const c = Math.cos(r)
+    const s = Math.sin(r)
+    left(c * a + s * b)
+    up(-s * a + c * b)
+  }
+  const update = controls.update.bind(controls)
+  controls.update = (dt) => {
+    if (held !== null) left(held)
+    held = null
+    return update(dt)
+  }
+}
+
+function Orbit({ view, nonce, store }: { view: ViewDef; nonce: number; store: ViewStore }) {
   const camera = useThree((s) => s.camera)
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
   const getState = useThree((s) => s.get)
   const ready = useThree((s) => s.size.width > 0 && s.size.height > 0)
   const first = useRef(true)
-  const anim = useRef<{
-    t0: number
-    fromT: Vector3
-    toT: Vector3
-    from: Spherical
-    to: Spherical
-  } | null>(null)
+  const anim = useRef<Glide | null>(null)
 
   const controls = useMemo(() => {
     const c = new OrbitControls(camera, gl.domElement)
@@ -101,12 +155,15 @@ function Orbit({ view, nonce }: { view: ViewDef; nonce: number }) {
     c.zoomSpeed = 0.8
     c.minDistance = 3
     c.maxDistance = 45
+    followHand(c, () => store.roll)
     return c
-  }, [camera, gl])
+  }, [camera, gl, store])
 
   useEffect(() => {
     const onChange = () => invalidate()
     const onStart = () => {
+      // a drag stops any glide where it is
+      if (anim.current) store.rollGoal = store.roll
       anim.current = null
     }
     controls.connect(gl.domElement)
@@ -117,7 +174,90 @@ function Orbit({ view, nonce }: { view: ViewDef; nonce: number }) {
       controls.removeEventListener('start', onStart)
       controls.disconnect()
     }
-  }, [controls, gl, invalidate])
+  }, [controls, gl, invalidate, store])
+
+  const startGlide = (toT: Vector3, to: Spherical, toRoll: number, ms: number) => {
+    const from = new Spherical().setFromVector3(camera.position.clone().sub(controls.target))
+    // take the short way round
+    while (to.theta - from.theta > Math.PI) to.theta -= Math.PI * 2
+    while (to.theta - from.theta < -Math.PI) to.theta += Math.PI * 2
+    const fromRoll = store.roll
+    toRoll = fromRoll + wrap180(toRoll - fromRoll)
+    store.rollGoal = toRoll
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) ms = 1
+    anim.current = { t0: performance.now(), ms, fromT: controls.target.clone(), toT, from, to, fromRoll, toRoll }
+    invalidate()
+  }
+
+  // what the gizmo can ask of the camera
+  useEffect(() => {
+    store.glide = (aim, ms = 460) => {
+      const to = new Spherical().setFromVector3(camera.position.clone().sub(controls.target))
+      if (aim.el !== undefined) to.phi = Math.PI / 2 - clampEl(aim.el) * DEG
+      if (aim.az !== undefined) to.theta = aim.az * DEG
+      startGlide(controls.target.clone(), to, aim.roll ?? store.rollGoal, ms)
+    }
+    store.turn = (dx, dy) => {
+      const t = controls as unknown as Turning
+      t._rotateLeft(dx * DEG)
+      t._rotateUp(dy * DEG)
+      controls.update()
+      invalidate()
+    }
+    store.setRoll = (deg) => {
+      if (anim.current) anim.current.fromRoll = anim.current.toRoll = deg
+      store.roll = store.rollGoal = deg
+      invalidate()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store, controls, camera, invalidate])
+
+  // on a phone, a two-finger twist tilts the picture (once it is clearly a twist, not a pinch)
+  useEffect(() => {
+    const el = gl.domElement
+    const fingers = new Map<number, { x: number; y: number }>()
+    let twist: { angle: number; turned: number; on: boolean } | null = null
+    const angle = () => {
+      const [a, b] = [...fingers.values()]
+      return Math.atan2(b.y - a.y, b.x - a.x) / DEG
+    }
+    const down = (e: PointerEvent) => {
+      if (e.pointerType !== 'touch') return
+      fingers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      twist = fingers.size === 2 ? { angle: angle(), turned: 0, on: false } : null
+    }
+    const move = (e: PointerEvent) => {
+      const f = fingers.get(e.pointerId)
+      if (!f) return
+      f.x = e.clientX
+      f.y = e.clientY
+      if (!twist || fingers.size !== 2) return
+      const a = angle()
+      let d = wrap180(a - twist.angle)
+      twist.angle = a
+      if (!twist.on) {
+        twist.turned += d
+        if (Math.abs(twist.turned) < 10) return
+        twist.on = true
+        d = twist.turned
+      }
+      store.setRoll(store.roll + d)
+    }
+    const up = (e: PointerEvent) => {
+      fingers.delete(e.pointerId)
+      if (fingers.size < 2) twist = null
+    }
+    el.addEventListener('pointerdown', down)
+    el.addEventListener('pointermove', move)
+    el.addEventListener('pointerup', up)
+    el.addEventListener('pointercancel', up)
+    return () => {
+      el.removeEventListener('pointerdown', down)
+      el.removeEventListener('pointermove', move)
+      el.removeEventListener('pointerup', up)
+      el.removeEventListener('pointercancel', up)
+    }
+  }, [gl, store])
 
   // glide to the requested view (snap on first load)
   useEffect(() => {
@@ -129,27 +269,25 @@ function Orbit({ view, nonce }: { view: ViewDef; nonce: number }) {
     const aspect = width / Math.max(height, 1)
     const dist = Math.max(view.fit[1] / (2 * tan), view.fit[0] / (2 * tan * aspect)) * 1.2
     const to = new Spherical(dist, Math.PI / 2 - view.el * DEG, view.az * DEG)
+    // a set view keeps the tilt unless it asks for one
+    const roll = view.roll ?? store.rollGoal
     if (first.current) {
       first.current = false
       controls.target.copy(toT)
       camera.position.setFromSpherical(to).add(toT)
+      store.roll = store.rollGoal = roll
       controls.update()
       invalidate()
       return
     }
-    const from = new Spherical().setFromVector3(camera.position.clone().sub(controls.target))
-    // take the short way round
-    while (to.theta - from.theta > Math.PI) to.theta -= Math.PI * 2
-    while (to.theta - from.theta < -Math.PI) to.theta += Math.PI * 2
-    anim.current = { t0: performance.now(), fromT: controls.target.clone(), toT, from, to }
-    invalidate()
+    startGlide(toT, to, roll, 520)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nonce, ready])
 
   useFrame(() => {
     const a = anim.current
     if (a) {
-      const t = Math.min(1, (performance.now() - a.t0) / 520)
+      const t = Math.min(1, (performance.now() - a.t0) / a.ms)
       const e = 1 - Math.pow(1 - t, 3)
       const s = new Spherical(
         a.from.radius + (a.to.radius - a.from.radius) * e,
@@ -158,10 +296,16 @@ function Orbit({ view, nonce }: { view: ViewDef; nonce: number }) {
       )
       controls.target.lerpVectors(a.fromT, a.toT, e)
       camera.position.setFromSpherical(s).add(controls.target)
+      store.roll = a.fromRoll + (a.toRoll - a.fromRoll) * e
       if (t >= 1) anim.current = null
       invalidate()
     }
+    // the controls aim the camera level; the tilt turns the picture after that
     controls.update()
+    camera.rotateZ(store.roll * DEG)
+    camera.updateMatrixWorld()
+    store.quat.copy(camera.quaternion)
+    store.listeners.forEach((fn) => fn())
   })
 
   return null
@@ -169,33 +313,51 @@ function Orbit({ view, nonce }: { view: ViewDef; nonce: number }) {
 
 /* ───────────────────────── light ───────────────────────── */
 
-/** A locked lamp's direction in world space (null while the lamp rides on the view). */
+/** A locked lamp's direction in world space. */
 const _lampWorld = new Vector3()
+/** The lamp as seen in the picture: the view before any tilt, the way the light ball shows it. */
+const _lampPicture = new Vector3()
+const _level = new Matrix4()
+const _untilt = new Matrix4()
+const _forward = new Vector3(0, 0, 1)
 
-function Lighting({ light }: { light: LightSetting }) {
+/** The camera's world matrix with the tilt taken out. */
+function levelCamera(camera: Object3D, roll: number) {
+  camera.updateMatrixWorld()
+  return _level.multiplyMatrices(camera.matrixWorld, _untilt.makeRotationZ(-roll * DEG))
+}
+
+function Lighting({ light, store }: { light: LightSetting; store: ViewStore }) {
   const invalidate = useThree((s) => s.invalidate)
   const camera = useThree((s) => s.camera)
   const locked = useRef(false)
 
+  // the lamp is set in the picture, so tilting the view turns the light with it,
+  // like turning a drawing; the shader wants it in the tilted view
+  const tiltLamp = () => lightInView().copy(_lampPicture).applyAxisAngle(_forward, -store.roll * DEG)
+
   useLayoutEffect(() => {
     // the ball always sets the lamp relative to the current view...
     applyLight(light)
+    _lampPicture.copy(lightInView())
     locked.current = light.on && light.locked
     // ...and locking pins that direction into the room
     if (locked.current) {
-      camera.updateMatrixWorld()
-      _lampWorld.copy(lightInView()).transformDirection(camera.matrixWorld)
-      lampViewStore.set(lightInView())
+      _lampWorld.copy(_lampPicture).transformDirection(levelCamera(camera, store.roll))
+      lampViewStore.set(_lampPicture)
     }
+    tiltLamp()
     invalidate()
-  }, [light, camera, invalidate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [light, camera, invalidate, store])
 
-  // a locked lamp stays put in the room: work out where it is from the current view
   useFrame(() => {
-    if (!locked.current) return
-    camera.updateMatrixWorld()
-    lightInView().copy(_lampWorld).transformDirection(camera.matrixWorldInverse)
-    lampViewStore.set(lightInView())
+    // a locked lamp stays put in the room: work out where it is from the current view
+    if (locked.current) {
+      _lampPicture.copy(_lampWorld).transformDirection(levelCamera(camera, store.roll).invert())
+      lampViewStore.set(_lampPicture)
+    }
+    tiltLamp()
   })
 
   return null

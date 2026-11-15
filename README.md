@@ -96,6 +96,7 @@ Each link opens that part straight away.
 | :-: | --- | --- |
 | 🎚️ | **Move it** | Sliders and one-tap poses for each joint. |
 | 👀 | **Look from** | Four buttons jump to the front, back and sides. You can also drag to spin freely. |
+| 🧭 | **View gizmo** | The ball in the top-right corner. Click a dot to look from that side, including the top and from below, or drag the ball to turn the model. Drag the **arc** above it to **tilt the picture**, the way you turn your sketchbook to draw a line at a comfortable angle. The arrows at its ends tilt 15° at a time, or press **Q** / **E**. Once tilted, the little mark at the top turns yellow: click it to level the picture. The button at the bottom goes back to the starting view. |
 | 📖 | **Muscle notes** | Click a block to highlight it. You'll see *where* it runs, how to *draw it*, and what to *watch* when it moves. |
 | ↔️ | **Left / Right** | Choose the left or right limb. Works for arms, hands, legs and feet. |
 | 🚻 | **Male / Female** | The female figure has a narrower rib cage and shoulders, a smaller waist, wider hips, slimmer muscles and a breast shape on the chest. |
@@ -125,7 +126,7 @@ torso already shows both sides, so the switch is greyed out there.
 <details>
 <summary><b>Does it work on my phone or tablet?</b></summary>
 <br />
-Yes. Drag with one finger to spin and pinch to zoom.
+Yes. Drag with one finger to spin and pinch to zoom. Twist two fingers to tilt the picture.
 </details>
 
 <details>

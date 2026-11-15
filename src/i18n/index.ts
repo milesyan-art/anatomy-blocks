@@ -39,6 +39,19 @@ export interface UiText {
   labels: string
   neighbours: string
   hint: string
+  /** The view gizmo in the corner of the stage. */
+  gizmo: {
+    label: string
+    /** Each view dot: [the letter on the dot, its full name]. */
+    dots: Record<'front' | 'back' | 'left' | 'right' | 'top' | 'bottom', [string, string]>
+    turn: string
+    tiltName: string
+    tilt: string
+    tiltLeft: string
+    tiltRight: string
+    level: string
+    home: string
+  }
   moveIt: string
   blocks: string
   tips: string
@@ -98,7 +111,25 @@ const en: UiText = {
   guides: 'Guide lines',
   labels: 'Labels',
   neighbours: 'Neighbours',
-  hint: 'drag to spin · scroll or pinch to zoom',
+  hint: 'drag to spin · scroll or pinch to zoom · Q / E to tilt',
+  gizmo: {
+    label: 'View',
+    dots: {
+      front: ['F', 'Look from the front'],
+      back: ['Bk', 'Look from the back'],
+      left: ['L', 'Look from the left'],
+      right: ['R', 'Look from the right'],
+      top: ['T', 'Look from the top'],
+      bottom: ['B', 'Look from below'],
+    },
+    turn: 'Drag to turn the model',
+    tiltName: 'Tilt the picture',
+    tilt: 'Drag to tilt the picture · double-click to level',
+    tiltLeft: 'Tilt anticlockwise 15°',
+    tiltRight: 'Tilt clockwise 15°',
+    level: 'Level the picture',
+    home: 'Back to the starting view',
+  },
   moveIt: 'Move it',
   blocks: 'The blocks',
   tips: 'Drawing tips',
