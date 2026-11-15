@@ -43,10 +43,23 @@ input:focus-visible {
 
 /* ───────── layout ───────── */
 
+/*
+ * The side columns draw at 90% so the stage gets more of the width. Everything in them
+ * scales together (type, buttons, gaps), so they keep their proportions, just smaller.
+ * At full size they would be 196px and 344px wide.
+ */
 .app {
+  --side-scale: 0.9;
   display: grid;
-  grid-template-columns: 196px minmax(0, 1fr) 344px;
+  grid-template-columns: calc(196px * var(--side-scale)) minmax(0, 1fr) calc(344px * var(--side-scale));
   height: 100dvh;
+}
+
+@media (min-width: 961px) {
+  .rail,
+  .panel {
+    zoom: var(--side-scale);
+  }
 }
 
 .rail {
