@@ -234,6 +234,7 @@ export default function App() {
           view={sideView(view.def, rig, side)}
           viewNonce={view.nonce}
           gizmo={tr.gizmo}
+          shortcuts={tr.shortcuts}
           onHome={goHome}
           onHover={setHovered}
           onSelect={(g) => setSelected((cur) => (g === cur ? null : g))}

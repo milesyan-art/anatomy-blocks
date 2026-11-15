@@ -28,6 +28,7 @@ import { restPose } from '../parts'
 import type { UiText } from '../i18n'
 import { createLabelStore } from './labels'
 import type { LabelAnchor, LabelStore } from './labels'
+import { ShortcutTips } from './ShortcutTips'
 import { ViewGizmo } from './ViewGizmo'
 import { createViewStore, wrap180 } from './viewStore'
 import type { ViewStore } from './viewStore'
@@ -54,6 +55,8 @@ interface ViewerProps {
   viewNonce: number
   /** Words on the view gizmo. */
   gizmo: UiText['gizmo']
+  /** Words on the shortcut tips card. */
+  shortcuts: UiText['shortcuts']
   /** Back to the lesson's starting view, level. */
   onHome: () => void
   onHover: (group: string | null) => void
@@ -82,6 +85,7 @@ export function Viewer(props: ViewerProps) {
       </Canvas>
       <LabelLayer store={store} groups={shown} visible={options.labels && options.muscles} focus={focus} onSelect={onSelect} />
       <ViewGizmo store={viewStore} text={props.gizmo} onHome={props.onHome} />
+      <ShortcutTips text={props.shortcuts} />
     </div>
   )
 }
@@ -106,6 +110,8 @@ interface Turning {
 }
 
 const clampEl = (el: number) => Math.max(-89, Math.min(89, el))
+/** OrbitControls' state while a mouse drag pans. */
+const PAN = 2
 
 /**
  * On a tilted picture, turn each drag back by the tilt first, so the model moves the
@@ -165,14 +171,22 @@ function Orbit({ view, nonce, store }: { view: ViewDef; nonce: number; store: Vi
       // a drag stops any glide where it is
       if (anim.current) store.rollGoal = store.roll
       anim.current = null
+      // a move cursor while panning (right-drag, or Shift / Ctrl / ⌘ + left-drag)
+      if ((controls as unknown as { state: number }).state === PAN) gl.domElement.style.cursor = 'move'
+    }
+    const onEnd = () => {
+      gl.domElement.style.cursor = ''
     }
     controls.connect(gl.domElement)
     controls.addEventListener('change', onChange)
     controls.addEventListener('start', onStart)
+    controls.addEventListener('end', onEnd)
     return () => {
       controls.removeEventListener('change', onChange)
       controls.removeEventListener('start', onStart)
+      controls.removeEventListener('end', onEnd)
       controls.disconnect()
+      onEnd()
     }
   }, [controls, gl, invalidate, store])
 
