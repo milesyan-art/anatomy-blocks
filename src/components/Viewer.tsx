@@ -22,8 +22,8 @@ import {
 import type { LightSetting } from '../engine/materials'
 import { mirrorOf } from '../engine/mirror'
 import type { LimbSide } from '../engine/mirror'
-import { Sweep } from '../engine/sweep'
-import type { GroupDef, LessonDef, Pose, RigDef, Vec3, ViewDef } from '../engine/types'
+import { makeForm } from '../engine/sweep'
+import type { Form, GroupDef, LessonDef, Pose, RigDef, Vec3, ViewDef } from '../engine/types'
 import { restPose } from '../parts'
 import type { UiText } from '../i18n'
 import { createLabelStore } from './labels'
@@ -59,6 +59,8 @@ interface ViewerProps {
   shortcuts: UiText['shortcuts']
   /** Back to the lesson's starting view, level. */
   onHome: () => void
+  /** Which way the model is being looked at, once the camera is in the user's hands (degrees round it, 0 = front). */
+  onFace: (az: number) => void
   onHover: (group: string | null) => void
   onSelect: (group: string | null) => void
 }
@@ -77,7 +79,7 @@ export function Viewer(props: ViewerProps) {
         camera={{ fov: 26, near: 0.5, far: 200, position: [0, 0, 14] }}
         onPointerMissed={() => onSelect(null)}
       >
-        <Orbit view={props.view} nonce={props.viewNonce} store={viewStore} />
+        <Orbit view={props.view} nonce={props.viewNonce} store={viewStore} onFace={props.onFace} />
         <Lighting light={props.light} store={viewStore} />
         {props.light.on && <CastShadows />}
         <RigModel {...props} store={store} />
@@ -110,6 +112,8 @@ interface Turning {
 }
 
 const clampEl = (el: number) => Math.max(-89, Math.min(89, el))
+const _look = new Spherical()
+const _eye = new Vector3()
 /** OrbitControls' state while a mouse drag pans. */
 const PAN = 2
 
@@ -144,7 +148,17 @@ function followHand(controls: OrbitControls, roll: () => number) {
   }
 }
 
-function Orbit({ view, nonce, store }: { view: ViewDef; nonce: number; store: ViewStore }) {
+function Orbit({
+  view,
+  nonce,
+  store,
+  onFace,
+}: {
+  view: ViewDef
+  nonce: number
+  store: ViewStore
+  onFace: (az: number) => void
+}) {
   const camera = useThree((s) => s.camera)
   const gl = useThree((s) => s.gl)
   const invalidate = useThree((s) => s.invalidate)
@@ -152,6 +166,9 @@ function Orbit({ view, nonce, store }: { view: ViewDef; nonce: number; store: Vi
   const ready = useThree((s) => s.size.width > 0 && s.size.height > 0)
   const first = useRef(true)
   const anim = useRef<Glide | null>(null)
+  /** The last requested view the camera has set off for, and the last direction reported. */
+  const taken = useRef(nonce)
+  const faced = useRef(NaN)
 
   const controls = useMemo(() => {
     const c = new OrbitControls(camera, gl.domElement)
@@ -285,6 +302,7 @@ function Orbit({ view, nonce, store }: { view: ViewDef; nonce: number; store: Vi
     const to = new Spherical(dist, Math.PI / 2 - view.el * DEG, view.az * DEG)
     // a set view keeps the tilt unless it asks for one
     const roll = view.roll ?? store.rollGoal
+    taken.current = nonce
     if (first.current) {
       first.current = false
       controls.target.copy(toT)
@@ -320,6 +338,18 @@ function Orbit({ view, nonce, store }: { view: ViewDef; nonce: number; store: Vi
     camera.updateMatrixWorld()
     store.quat.copy(camera.quaternion)
     store.listeners.forEach((fn) => fn())
+
+    // say which way the model is seen from - but only once the camera has arrived where it
+    // was sent, and not from straight above or below, where "which side" means nothing
+    if (!anim.current && taken.current === nonce) {
+      _look.setFromVector3(_eye.copy(camera.position).sub(controls.target))
+      const az = _look.theta / DEG
+      const el = 90 - _look.phi / DEG
+      if (Math.abs(el) < 65 && !(Math.abs(wrap180(az - faced.current)) < 1)) {
+        faced.current = az
+        onFace(az)
+      }
+    }
   })
 
   return null
@@ -506,7 +536,7 @@ function RigModel({
     const frames = rig.frames(rest)
     const drives = rig.drives(rest)
     return rig.sweeps.map((def) => {
-      const s = new Sweep(def, solid)
+      const s = makeForm(def, solid)
       s.setRest(frames, drives)
       return s
     })
@@ -545,7 +575,7 @@ function RigModel({
     </group>
   )
 
-  function renderSweep(s: Sweep) {
+  function renderSweep(s: Form) {
     const { kind, group } = s.def
     if (kind === 'bone') {
       return options.bones ? <SweepMesh key={s.def.id} sweep={s} guides={false} dim={0} solid={solid} /> : null
@@ -573,7 +603,7 @@ function RigModel({
 }
 
 interface SweepMeshProps {
-  sweep: Sweep
+  sweep: Form
   group?: GroupDef
   guides: boolean
   dim: number

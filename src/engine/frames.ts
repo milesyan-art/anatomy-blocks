@@ -1,5 +1,5 @@
 import { Matrix4, Vector3 } from 'three'
-import type { FrameGetter, PathPoint, Vec3 } from './types'
+import type { FrameGetter, PathPoint, SkinDef, Vec3 } from './types'
 
 export const DEG = Math.PI / 180
 
@@ -69,5 +69,69 @@ export function mirrorPoint(pt: PathPoint, mapFrame: (f: string) => string): Pat
     p: flip(pt.p),
     n: pt.n ? flip(pt.n) : undefined,
     alt: pt.alt ? { ...pt.alt, p: pt.alt.p ? flip(pt.alt.p) : undefined } : undefined,
+  }
+}
+
+/** Mirror a skin to the other side of the body. Its rows are turned round so it still faces outwards. */
+export function mirrorSkin(skin: SkinDef, mapFrame: (f: string) => string): SkinDef {
+  const last = skin.rows[0].length - 1
+  return {
+    ...skin,
+    rows: skin.rows.map((row) =>
+      row.map((pt) => ({ ...pt, f: mapFrame(pt.f), p: [-pt.p[0], pt.p[1], pt.p[2]] as Vec3 })).reverse(),
+    ),
+    lines: skin.lines?.map((l) => last - l),
+    label: skin.label ? [skin.label[0], last - skin.label[1]] : undefined,
+  }
+}
+
+/**
+ * A station whose cross-section wraps part of a circle, seen from above:
+ * the arc around (cx, cz) with radius r, from angle `from` to `to`
+ * (degrees, 0 = +X / outside, 90 = +Z / front). Use with a `sheet` section
+ * on a path that runs downwards.
+ */
+export function arc(
+  f: string,
+  y: number,
+  cx: number,
+  cz: number,
+  r: number,
+  from: number,
+  to: number,
+  h: number,
+): PathPoint {
+  const a = (((from + to) / 2) * Math.PI) / 180
+  const curl = ((to - from) * Math.PI) / 180
+  const n: Vec3 = [Math.cos(a), 0, Math.sin(a)]
+  return { f, p: [cx + r * n[0], y, cz + r * n[2]], w: (r * curl) / 2, h, n, curl }
+}
+
+/**
+ * A station of a hollow oval ring around (0, cz), seen from above: `wide` across,
+ * `deep` front to back (outer sizes), with a gap of +-`open` degrees at the front.
+ * `open` = 0 closes the ring. Use with the `shell` section on a downward path.
+ */
+export function cage(
+  f: string,
+  y: number,
+  cz: number,
+  wide: number,
+  deep: number,
+  open: number,
+  h: number,
+  square = 1,
+): PathPoint {
+  const rad = deep - h
+  const curl = 2 * Math.PI - (2 * open * Math.PI) / 180
+  return {
+    f,
+    p: [0, y, cz - rad],
+    w: (rad * curl) / 2,
+    h,
+    n: [0, 0, -1],
+    curl,
+    wide: wide / deep,
+    square,
   }
 }

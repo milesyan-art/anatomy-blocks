@@ -1,4 +1,4 @@
-import type { Matrix4 } from 'three'
+import type { BufferGeometry, Matrix4, Vector3 } from 'three'
 
 export type Vec3 = [number, number, number]
 
@@ -26,13 +26,50 @@ export interface PathPoint {
   n?: Vec3
   /** Wrap angle in radians - bends the cross-section around the form underneath. */
   curl?: number
+  /** Stretches a wrapped cross-section across (1 = round, >1 = wider than deep), so it can hug an oval. */
+  wide?: number
+  /** Squares off a wrapped cross-section (1 = true oval, smaller = boxier, with flatter sides). */
+  square?: number
   /** A second "key shape" that a drive (0..1, e.g. how bent the elbow is) blends towards. */
   alt?: { drive: string; p?: Vec3; w?: number; h?: number }
 }
 
-export type SectionName = 'block' | 'round' | 'hex' | 'crate' | 'box' | 'sheet' | 'sheet7'
+export type SectionName = 'block' | 'round' | 'hex' | 'crate' | 'box' | 'sheet' | 'sheet7' | 'shell'
 
 export type SweepKind = 'muscle' | 'tendon' | 'bone' | 'prop'
+
+/** One control point of a skin: where the outside of the pad is, and how thick the pad is there. */
+export interface SkinPoint {
+  /** Frame the point is glued to. */
+  f: string
+  p: Vec3
+  /** Thickness, measured inwards from the point. */
+  h: number
+}
+
+/**
+ * A smooth pad laid over the body, for forms a swept block cannot follow.
+ * It is drawn from a small grid of control points instead of a path.
+ */
+export interface SkinDef {
+  /**
+   * The control grid. Rows run down the form; within a row the points run to the
+   * right as seen from outside (front to back on the figure's left side).
+   */
+  rows: SkinPoint[][]
+  /** Columns that carry an inked plane line (control index, fractions allowed). */
+  lines?: number[]
+  /** Rows that carry a guide ring (control index). Left out = every row but the first and last. */
+  rings?: number[]
+  /** How far in from the border the edge starts to roll over, in control spans. */
+  round?: number
+  /** Thickness left at the very edge, as a share of the full thickness. */
+  rim?: number
+  /** Samples per control span. */
+  sub?: number
+  /** The control point the group's label points at: [row, column]. */
+  label?: [number, number]
+}
 
 export interface SweepDef {
   id: string
@@ -40,6 +77,8 @@ export interface SweepDef {
   group: string
   kind: SweepKind
   path: PathPoint[]
+  /** Draw this form as a skin instead of sweeping a block along `path` (which then stays empty). */
+  skin?: SkinDef
   section?: SectionName
   /** Rings per span between two stations. */
   seg?: number
@@ -47,6 +86,19 @@ export interface SweepDef {
   bulge?: number
   /** Index of the station that carries the group's label. */
   label?: number
+}
+
+/** A form on screen, whichever way it is built: a swept block or a skin. */
+export interface Form {
+  readonly def: SweepDef
+  readonly geometry: BufferGeometry
+  /** Where the label points at, in rig space. */
+  readonly anchor: Vector3
+  readonly anchorNormal: Vector3
+  /** Remember the resting pose (flexing is measured against it). */
+  setRest(frames: FrameGetter, drives: Record<string, number>): void
+  update(frames: FrameGetter, drives: Record<string, number>): void
+  dispose(): void
 }
 
 export interface ControlDef {
@@ -117,6 +169,11 @@ export interface LessonDef {
   show: string[]
   view: ViewDef
   tips: string[]
+  /**
+   * The lesson that covers the other side of the same model. When the camera turns
+   * to face that lesson's view, the app follows it there.
+   */
+  otherSide?: string
   /** Names for the four view buttons: az 0, 90, 180, -90. */
   sides?: [string, string, string, string]
 }
