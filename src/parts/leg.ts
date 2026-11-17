@@ -1,7 +1,7 @@
 import { Matrix4 } from 'three'
 import { DEG, P, makeFrames, mul, rotX, translate } from '../engine/frames'
 import type { LessonDef, PathPoint, RigDef, SkinDef, SkinPoint, SweepDef, Vec3 } from '../engine/types'
-import { ANKLE, BALL, FOOT, KNEE, PATELLA_FRAME, PATELLA_TURN, SHIN, legBones, patellaFrame } from './legBones'
+import { ANKLE, BALL, FEMUR, FOOT, KNEE, PATELLA_FRAME, PATELLA_TURN, SHIN, legBones, patellaFrame } from './legBones'
 import { PELVIS, bladePoint, crestHeight, pelvisBlocks } from './pelvis'
 
 /*
@@ -11,7 +11,8 @@ import { PELVIS, bladePoint, crestHeight, pelvisBlocks } from './pelvis'
  *
  * Frames
  *   pelvis  hip block (never moves) - shared with the torso, see pelvis.ts
- *   femur   thigh bone (fixed here - the knee and ankle do the moving)
+ *   femur   thigh bone, swinging forward at the hip (the leg raise)
+ *   thigh@k the hip turned by k x the raise, for flesh that wraps the front or back of the hip
  *   knee@k  sits at the knee, turned by k x the knee bend (0 = thigh ... 1 = shin)
  *   tibia   shin (= knee@1)
  *   patella the kneecap, which slides down the front of the thigh bone as the knee bends
@@ -68,7 +69,8 @@ const sweeps: SweepDef[] = [
     path: [
       // origin: a long edge down the side of the sacrum, from the dimple point to the tail bone
       PL([0.3, 0.42, -0.94], 0.48, 0.12, { n: [-0.1, 0, -1] }),
-      P('pelvis', -0.08, 0.02, -0.88, 0.56, 0.38, { n: [0.1, 0, -1] }),
+      // the buttock rides part of the way with the thigh, so it rolls over the back of the hip
+      P('thigh@0.4', -0.08, 0.02, -0.88, 0.56, 0.38, { n: [0.1, 0, -1] }),
       P('femur', 0.4, -0.7, -0.55, 0.42, 0.28, { n: [0.6, 0, -0.8] }),
       P('femur', 0.62, -1.5, -0.2, 0.14, 0.08, { n: [0.95, 0, -0.3] }),
     ],
@@ -89,7 +91,7 @@ const sweeps: SweepDef[] = [
     path: [
       // origin: the front point of the hip and the first stretch of crest behind it
       PL(bladePoint(0.94, 0.44, -0.03), 0.1, 0.05, { n: [0.75, 0.1, 0.65] }),
-      P('femur', 0.62, 0.1, 0.25, 0.17, 0.12, { n: [0.9, 0, 0.44] }),
+      P('thigh@0.7', 0.62, 0.1, 0.25, 0.17, 0.12, { n: [0.9, 0, 0.44] }),
       P('femur', 0.7, -0.7, 0.14, 0.12, 0.07, { n: [1, 0, 0.2] }),
     ],
     label: 1,
@@ -156,7 +158,7 @@ const sweeps: SweepDef[] = [
     kind: 'muscle',
     bulge: 0.3,
     path: [
-      P('femur', 0.08, -0.12, 0.58, 0.1, 0.07, { n: [0.1, 0, 1] }),
+      P('thigh@0.6', 0.08, -0.12, 0.58, 0.1, 0.07, { n: [0.1, 0, 1] }),
       P('femur', 0.1, -0.8, 0.52, 0.27, 0.22, { n: [0.1, 0, 1] }),
       P('femur', 0.02, -2.0, 0.58, 0.29, 0.24, { n: FRONT }),
       P('femur', -0.1, -2.9, 0.5, 0.22, 0.15, { n: FRONT }),
@@ -174,8 +176,8 @@ const sweeps: SweepDef[] = [
     seg: 2,
     path: [
       PL(PELVIS.aiis, 0.045, 0.035, { n: FRONT }),
-      P('femur', 0.07, 0.12, 0.58, 0.05, 0.035, { n: FRONT }),
-      P('femur', 0.08, -0.2, 0.6, 0.06, 0.035, { n: FRONT }),
+      P('thigh@0.4', 0.07, 0.12, 0.58, 0.05, 0.035, { n: FRONT }),
+      P('thigh@0.6', 0.08, -0.2, 0.6, 0.06, 0.035, { n: FRONT }),
     ],
   },
   {
@@ -195,7 +197,7 @@ const sweeps: SweepDef[] = [
     kind: 'muscle',
     path: [
       PL(PELVIS.asis, 0.045, 0.035, { n: [0.4, 0.3, 0.87] }),
-      P('femur', 0.24, 0.1, 0.66, 0.085, 0.055, { n: [0.25, 0, 1] }),
+      P('thigh@0.5', 0.24, 0.1, 0.66, 0.085, 0.055, { n: [0.25, 0, 1] }),
       P('femur', 0.08, -0.6, 0.72, 0.1, 0.06, { n: FRONT }),
       P('femur', -0.42, -1.8, 0.52, 0.1, 0.06, { n: [-0.5, 0, 0.87] }),
       P('femur', -0.74, -3.0, 0.1, 0.1, 0.06, { n: [-0.9, 0, 0.44] }),
@@ -324,14 +326,16 @@ export const legRig: RigDef = {
   id: 'leg',
   midX: -HIP_X,
   controls: [
+    { id: 'hip', label: 'Raise the leg', min: 0, max: 110, def: 0, lo: 'down', hi: 'raised' },
     { id: 'knee', label: 'Bend the knee', min: 0, max: 135, def: 5, lo: 'straight', hi: 'bent' },
     { id: 'ankle', label: 'Point the foot', min: -20, max: 45, def: 0, lo: 'toes up', hi: 'toes down' },
   ],
   presets: [
-    { label: 'Standing', pose: { knee: 5, ankle: 0 } },
-    { label: 'Tiptoe', pose: { knee: 0, ankle: 42 } },
-    { label: 'Sitting', pose: { knee: 90, ankle: 0 } },
-    { label: 'Deep bend', pose: { knee: 132, ankle: -15 } },
+    { label: 'Standing', pose: { hip: 0, knee: 5, ankle: 0 } },
+    { label: 'Tiptoe', pose: { hip: 0, knee: 0, ankle: 42 } },
+    { label: 'Leg raised', pose: { hip: 75, knee: 0, ankle: 10 } },
+    { label: 'Sitting', pose: { hip: 90, knee: 90, ankle: 0 } },
+    { label: 'Deep bend', pose: { hip: 110, knee: 132, ankle: -15 } },
   ],
   groups: [
     {
@@ -426,12 +430,18 @@ export const legRig: RigDef = {
     },
   ],
   sweeps,
-  drives: (pose) => ({ knee: pose.knee / 135, ankle: pose.ankle / 45 }),
-  frames: (pose) =>
-    makeFrames((name, k, get) => {
+  drives: (pose) => ({ hip: pose.hip / 110, knee: pose.knee / 135, ankle: pose.ankle / 45 }),
+  frames: (pose) => {
+    // the thigh swings forward about the centre of the ball in the hip socket
+    const hip = (k: number) => mul(translate(...FEMUR.head), rotX(-pose.hip * DEG * k), translate(-FEMUR.head[0], -FEMUR.head[1], -FEMUR.head[2]))
+    return makeFrames((name, k, get) => {
       switch (name) {
+        case 'femur':
+          return hip(1)
+        case 'thigh':
+          return hip(k)
         case 'knee':
-          return mul(translate(...KNEE), rotX(pose.knee * DEG * k))
+          return mul(get('femur'), translate(...KNEE), rotX(pose.knee * DEG * k))
         case 'tibia':
           return get('knee@1')
         case 'patella':
@@ -443,7 +453,8 @@ export const legRig: RigDef = {
         default:
           return IDENTITY
       }
-    }),
+    })
+  },
 }
 
 const LIMB_SIDES: LessonDef['sides'] = ['Front', 'Outside', 'Back', 'Inside']

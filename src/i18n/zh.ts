@@ -89,6 +89,31 @@ const ui: UiText = {
   },
 }
 
+/** The upper arm's muscles: shown in the arm lesson and, with the arms raised, in the torso. */
+const UPPER_ARM = {
+  biceps: {
+    name: '肱二头肌',
+    real: '肱二头肌',
+    where: '从三角肌下面出发 → 变成一根绳子似的肌腱，钻进前臂（接在桡骨上）。',
+    shape: '手臂正面的一个长方块。手臂伸直时又长又扁；弯曲时又短又高。',
+    move: '弯曲手肘：它缩短，鼓起的高点向肩膀方向移动。因为它拉着桡骨，所以也帮忙把掌心翻向上。',
+  },
+  brachialis: {
+    name: '肱肌',
+    real: '肱肌',
+    where: '上臂骨的下半段 → 尺骨，刚过手肘的位置。',
+    shape: '藏在二头肌下面的一块又宽又扁的楔形。只能看到它从两侧露出来的边。',
+    move: '它是弯曲手肘的幕后主力。从外侧看，找二头肌和三头肌之间那条橙色的带子。',
+  },
+  triceps: {
+    name: '肱三头肌',
+    real: '肱三头肌（长头、外侧头）和它扁平的肌腱',
+    where: '肩胛骨和上臂背面 → 手肘尖（尺骨）。',
+    shape: '上面两个肌腹，下面一块扁平的肌腱板。想象一只马蹄铁放在一块木板上。',
+    move: '手臂伸直：它在靠近肩膀处鼓成一团。弯曲手肘，它就被拉长拉平，绕过手肘后面。',
+  },
+}
+
 const content: Content = {
   lessons: {
     forearm: {
@@ -206,27 +231,7 @@ const content: Content = {
           shape: '一个倒过来的水滴，像垫肩。尖端向下插在二头肌和三头肌之间。',
           move: '它盖在手臂最上面，二头肌和三头肌都从它下面钻出来。',
         },
-        biceps: {
-          name: '肱二头肌',
-          real: '肱二头肌',
-          where: '从三角肌下面出发 → 变成一根绳子似的肌腱，钻进前臂（接在桡骨上）。',
-          shape: '手臂正面的一个长方块。手臂伸直时又长又扁；弯曲时又短又高。',
-          move: '弯曲手肘：它缩短，鼓起的高点向肩膀方向移动。因为它拉着桡骨，所以也帮忙把掌心翻向上。',
-        },
-        brachialis: {
-          name: '肱肌',
-          real: '肱肌',
-          where: '上臂骨的下半段 → 尺骨，刚过手肘的位置。',
-          shape: '藏在二头肌下面的一块又宽又扁的楔形。只能看到它从两侧露出来的边。',
-          move: '它是弯曲手肘的幕后主力。从外侧看，找二头肌和三头肌之间那条橙色的带子。',
-        },
-        triceps: {
-          name: '肱三头肌',
-          real: '肱三头肌（长头、外侧头）和它扁平的肌腱',
-          where: '肩胛骨和上臂背面 → 手肘尖（尺骨）。',
-          shape: '上面两个肌腹，下面一块扁平的肌腱板。想象一只马蹄铁放在一块木板上。',
-          move: '手臂伸直：它在靠近肩膀处鼓成一团。弯曲手肘，它就被拉长拉平，绕过手肘后面。',
-        },
+        ...UPPER_ARM,
         ridge: {
           name: '桡侧肌群',
           real: '肱桡肌 + 桡侧腕长伸肌',
@@ -299,10 +304,11 @@ const content: Content = {
 
     leg: {
       controls: {
+        hip: { label: '抬腿', lo: '放下', hi: '抬起' },
         knee: { label: '弯曲膝盖', lo: '伸直', hi: '弯曲' },
         ankle: { label: '绷脚尖', lo: '勾脚', hi: '绷脚' },
       },
-      presets: { Standing: '站立', Tiptoe: '踮脚', Sitting: '坐姿', 'Deep bend': '深蹲' },
+      presets: { Standing: '站立', Tiptoe: '踮脚', 'Leg raised': '抬腿', Sitting: '坐姿', 'Deep bend': '深蹲' },
       groups: {
         glutes: {
           name: '臀肌',
@@ -453,6 +459,9 @@ const content: Content = {
         'Arms up': '双臂上举',
       },
       groups: {
+        biceps: { ...UPPER_ARM.biceps, move: '抬起手臂：它随着上臂骨一起向上摆，顶端塞在胸肌和三角肌下面。' },
+        brachialis: { ...UPPER_ARM.brachialis, move: '从正面看，它在二头肌两侧、手肘上方露出一点边。' },
+        triceps: { ...UPPER_ARM.triceps, move: '抬起手臂：长头从肩胛骨下面被拉长，腋窝在它和背阔肌之间张开。' },
         breast: {
           name: '乳房',
           real: '脂肪和腺体，不是肌肉，它盖在胸肌上面',

@@ -16,6 +16,7 @@ import {
 import type { GroupDef, LessonDef, PathPoint, RigDef, SkinDef, SkinPoint, SweepDef, Vec3 } from '../engine/types'
 import { mirrorSolid } from '../engine/solid'
 import { resize } from './body'
+import { armRig } from './arm'
 import { humerusSolid } from './armBones'
 import { pelvisBlocks, pelvisSolid } from './pelvis'
 import { SHOULDER, clavicleSolid, lumbarSolids, ribCageSolid, scapulaSolid } from './torsoBones'
@@ -197,6 +198,22 @@ const middle: SweepDef[] = [
   },
 ]
 
+/*
+ * The upper arm's own muscles, borrowed from the arm lesson so that raising the arms
+ * shows what they do at the shoulder. They hang on the torso's arm frame; their tops
+ * on the shoulder blade are moved into the trunk's space, and their bottoms - which
+ * cross the elbow onto the forearm - sit just under the elbow (it stays straight here).
+ */
+const UPPER_ARM = new Set(['brachialis', 'biceps', 'triceps-medial', 'triceps-long', 'triceps-lateral', 'triceps-tendon'])
+const ELBOW_Y = -3
+const fromArm = (pt: PathPoint): PathPoint => {
+  const base = pt.f.replace(/@.*/, '')
+  if (base === 'sh') return { ...pt, f: 'scapL', p: [pt.p[0] + SHOULDER[0], pt.p[1] + SHOULDER[1], pt.p[2] + SHOULDER[2]] }
+  if (base === 'hum') return { ...pt, f: 'armL' }
+  return { ...pt, f: 'armL', p: [pt.p[0], pt.p[1] + ELBOW_Y, pt.p[2]], alt: undefined }
+}
+const upperArm: SweepDef[] = armRig.sweeps.filter((d) => UPPER_ARM.has(d.id)).map((d) => ({ ...d, path: d.path.map(fromArm) }))
+
 /** The left half. */
 const left: SweepDef[] = [
   // ───────────── bones + props ─────────────
@@ -362,6 +379,7 @@ const left: SweepDef[] = [
     ],
     label: 2,
   },
+  ...upperArm,
 ]
 
 const toRight = (f: string) => f.replace(/^(clav|scap|sh|hum|arm)L/, '$1R')
@@ -465,6 +483,25 @@ const breastGroup: GroupDef = {
   move: 'It is attached to the rib cage, so it tilts and turns with the ribs. The chest muscle still shows above and towards the armpit.',
 }
 
+/*
+ * Their groups, as in the arm lesson - recoloured where they would match a neighbour
+ * here, and with what to watch when the arm goes up rather than when the elbow bends.
+ */
+const ARM_GROUPS: Record<string, Partial<GroupDef>> = {
+  biceps: {
+    move: 'Raise the arm and it swings up with the arm bone, its top tucked under the chest muscle and the deltoid.',
+  },
+  brachialis: {
+    color: '#c9a0f0',
+    move: 'From the front it peeks out on both sides of the biceps, just above the elbow.',
+  },
+  triceps: {
+    color: '#ffd166',
+    move: 'Raise the arm: the long head stretches out from under the shoulder blade, and the armpit opens between it and the lat.',
+  },
+}
+const upperArmGroups: GroupDef[] = armRig.groups.filter((g) => g.id in ARM_GROUPS).map((g) => ({ ...g, ...ARM_GROUPS[g.id] }))
+
 const groups: GroupDef[] = [
   {
     id: 'pecs',
@@ -556,6 +593,7 @@ const groups: GroupDef[] = [
     shape: 'Two ropes with a groove (the spine) between them. Thickest in the small of the back.',
     move: 'Arch back and they bunch up; crunch forward and they stretch and flatten.',
   },
+  ...upperArmGroups,
 ]
 
 /** A turn that carries the pair of directions (a1, a2) onto (b1, b2), as near as a turn can. */
@@ -679,8 +717,8 @@ const SIDES: LessonDef['sides'] = ['Front', 'Left side', 'Back', 'Right side']
  * where the camera starts, what the text is about, and which muscles are listed first -
  * and each names the other, so the app swaps them as the model is turned.
  */
-const FRONT_MUSCLES = ['breast', 'pecs', 'delts', 'abs', 'obliques', 'serratus', 'neck', 'traps']
-const BACK_MUSCLES = ['traps', 'delts', 'scap', 'lats', 'erectors', 'obliques']
+const FRONT_MUSCLES = ['breast', 'pecs', 'delts', 'abs', 'obliques', 'serratus', 'neck', 'traps', 'biceps', 'brachialis']
+const BACK_MUSCLES = ['traps', 'delts', 'scap', 'lats', 'erectors', 'obliques', 'triceps']
 const firstThen = (first: string[], rest: string[]) => [...first, ...rest.filter((id) => !first.includes(id))]
 
 export const torsoLessons: LessonDef[] = [
