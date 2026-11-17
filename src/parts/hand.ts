@@ -199,3 +199,6 @@ export const handLessons: LessonDef[] = [
     ],
   },
 ]
+
+/** The hand's own frames in its relaxed pose - for arms that carry a hand without finger controls. */
+export const relaxedHand = handRig.frames(Object.fromEntries(handRig.controls.map((c) => [c.id, c.def])))

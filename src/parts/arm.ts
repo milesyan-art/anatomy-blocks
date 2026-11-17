@@ -2,7 +2,7 @@ import { Matrix4, Vector3 } from 'three'
 import { DEG, P, makeFrames, mul, rotAbout, rotX, rotZ, translate } from '../engine/frames'
 import type { LessonDef, PathPoint, RigDef, SweepDef, Vec3 } from '../engine/types'
 import { humerusSolid, radiusSolid, ulnaSolid } from './armBones'
-import { handRig } from './hand'
+import { relaxedHand } from './hand'
 import { handBones } from './handBones'
 import { SHOULDER, clavicleSolid, scapulaSolid } from './torsoBones'
 
@@ -20,15 +20,16 @@ import { SHOULDER, clavicleSolid, scapulaSolid } from './torsoBones'
  *   hand  hand, rides on the radius
  */
 
-const ELBOW_Y = -3
-const CARRY = 6 * DEG
+/** Where the elbow sits below the shoulder joint. */
+export const ELBOW_Y = -3
+/** The forearm's slight outward angle at the elbow (carrying angle). */
+export const CARRY = 6 * DEG
 // The forearm twists around a line from the radius head (elbow) to the ulna head (wrist).
 const RADIUS_HEAD = new Vector3(0.21, -0.08, 0.02)
 const ULNA_HEAD = new Vector3(-0.2, -2.48, 0)
 const TWIST_AXIS = ULNA_HEAD.clone().sub(RADIUS_HEAD).normalize()
 const IDENTITY = new Matrix4()
-/** The hand's own frames, in its relaxed pose (the arm rig has no finger controls). */
-const RELAXED = handRig.frames(Object.fromEntries(handRig.controls.map((c) => [c.id, c.def])))
+
 /** From the torso's space to this rig's, where the shoulder joint is the origin. */
 const TO_SHOULDER: Vec3 = [-SHOULDER[0], -SHOULDER[1], -SHOULDER[2]]
 
@@ -293,7 +294,7 @@ export const armRig: RigDef = {
           return get('hand')
         default:
           // the finger and thumb bones, in the hand rig's relaxed pose
-          return name === 'sh' || name === 'hum' ? IDENTITY : mul(get('hand'), RELAXED(name))
+          return name === 'sh' || name === 'hum' ? IDENTITY : mul(get('hand'), relaxedHand(name))
       }
     }),
 }

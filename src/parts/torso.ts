@@ -16,10 +16,12 @@ import {
 import type { GroupDef, LessonDef, PathPoint, RigDef, SkinDef, SkinPoint, SweepDef, Vec3 } from '../engine/types'
 import { mirrorSolid } from '../engine/solid'
 import { resize } from './body'
-import { armRig } from './arm'
-import { humerusSolid } from './armBones'
+import { CARRY, ELBOW_Y, armRig } from './arm'
+import { WRIST, humerusSolid, radiusSolid, ulnaSolid } from './armBones'
+import { relaxedHand } from './hand'
+import { handBones } from './handBones'
 import { pelvisBlocks, pelvisSolid } from './pelvis'
-import { SHOULDER, clavicleSolid, lumbarSolids, ribCageSolid, scapulaSolid } from './torsoBones'
+import { SHOULDER, cervicalSolid, clavicleSolid, headSolid, lumbarSolids, ribCageSolid, scapulaSolid } from './torsoBones'
 
 /*
  * Torso, facing +Z.   +X = the figure's left   +Y = up
@@ -180,39 +182,44 @@ const middle: SweepDef[] = [
   // vertebrae below it, each riding its share of the bend (see torsoBones.ts)
   { id: 'ribcage', group: 'bone', kind: 'bone', path: [], solid: ribCageSolid() },
   ...lumbarSolids().map(({ id, solid }): SweepDef => ({ id, group: 'bone', kind: 'bone', path: [], solid })),
-  {
-    id: 'head',
-    group: 'head',
-    kind: 'prop',
-    section: 'crate',
-    path: [
-      // a strong neck column, leaning forward out of the rib cage
-      P('ribs', 0, 4.95, -0.2, 0.4, 0.38, { n: FRONT }),
-      P('ribs', 0, 5.65, -0.06, 0.35, 0.35, { n: FRONT }),
-      P('ribs', 0, 6.0, 0.12, 0.42, 0.5, { n: FRONT }),
-      P('ribs', 0, 6.55, 0.16, 0.57, 0.7, { n: FRONT }),
-      P('ribs', 0, 7.2, 0.1, 0.6, 0.74, { n: FRONT }),
-      P('ribs', 0, 7.68, 0.02, 0.46, 0.58, { n: FRONT }),
-      P('ribs', 0, 7.88, -0.02, 0.24, 0.32, { n: FRONT }),
-    ],
-  },
+  // the neck vertebrae, finishing the spine, and the carved head they carry (see torsoBones.ts)
+  { id: 'cervical', group: 'bone', kind: 'bone', path: [], solid: cervicalSolid() },
+  { id: 'head', group: 'head', kind: 'prop', path: [], solid: headSolid() },
+
 ]
 
 /*
- * The upper arm's own muscles, borrowed from the arm lesson so that raising the arms
- * shows what they do at the shoulder. They hang on the torso's arm frame; their tops
- * on the shoulder blade are moved into the trunk's space, and their bottoms - which
- * cross the elbow onto the forearm - sit just under the elbow (it stays straight here).
+ * The whole arm, borrowed from the arm lesson: forearm bones, the hand, and the muscles
+ * of the upper arm and forearm - so raising the arms shows what they do. The torso's arm
+ * hangs straight at the elbow (with its natural carrying angle), palm forward; the
+ * forearm's frames (`foreL`, `radL`, `handL`, `handL/<finger bone>`) are worked out
+ * in `armFrame`. Muscle tops on the shoulder blade are moved into the trunk's space.
  */
-const UPPER_ARM = new Set(['brachialis', 'biceps', 'triceps-medial', 'triceps-long', 'triceps-lateral', 'triceps-tendon'])
-const ELBOW_Y = -3
+const ARM_MUSCLES = new Set([
+  'brachialis',
+  'biceps',
+  'triceps-medial',
+  'triceps-long',
+  'triceps-lateral',
+  'triceps-tendon',
+  'flexors',
+  'extensors',
+  'ridge',
+])
+const FROM_ARM: Record<string, string> = { hum: 'armL', fa: 'foreL', rad: 'radL', hand: 'handL' }
 const fromArm = (pt: PathPoint): PathPoint => {
   const base = pt.f.replace(/@.*/, '')
   if (base === 'sh') return { ...pt, f: 'scapL', p: [pt.p[0] + SHOULDER[0], pt.p[1] + SHOULDER[1], pt.p[2] + SHOULDER[2]] }
-  if (base === 'hum') return { ...pt, f: 'armL' }
-  return { ...pt, f: 'armL', p: [pt.p[0], pt.p[1] + ELBOW_Y, pt.p[2]], alt: undefined }
+  return { ...pt, f: FROM_ARM[base] ?? 'armL' }
 }
-const upperArm: SweepDef[] = armRig.sweeps.filter((d) => UPPER_ARM.has(d.id)).map((d) => ({ ...d, path: d.path.map(fromArm) }))
+/** A hand bone's frame on the torso's left hand. */
+const handFrame = (f: string) => (f === 'palm' ? 'handL' : `handL/${f}`)
+const wholeArm: SweepDef[] = [
+  { id: 'ulna', group: 'bone', kind: 'bone', path: [], solid: ulnaSolid('foreL') },
+  { id: 'radius', group: 'bone', kind: 'bone', path: [], solid: radiusSolid('radL') },
+  ...handBones().map((d) => ({ ...d, solid: d.solid && { ...d.solid, frame: handFrame(d.solid.frame) } })),
+  ...armRig.sweeps.filter((d) => ARM_MUSCLES.has(d.id)).map((d) => ({ ...d, path: d.path.map(fromArm) })),
+]
 
 /** The left half. */
 const left: SweepDef[] = [
@@ -286,7 +293,8 @@ const left: SweepDef[] = [
     path: [
       P('ribs', 0.14, 4.95, 0.6, 0.08, 0.06, { n: [0.2, 0, 1] }),
       P('ribs', 0.38, 5.6, 0.26, 0.11, 0.08, { n: [0.7, 0, 0.7] }),
-      P('ribs', 0.5, 6.12, -0.12, 0.09, 0.06, { n: OUT }),
+      // up behind the jaw, onto the underside of the head
+      P('ribs', 0.46, 6.4, -0.2, 0.09, 0.06, { n: OUT }),
     ],
     label: 1,
   },
@@ -349,7 +357,8 @@ const left: SweepDef[] = [
     group: 'traps',
     kind: 'muscle',
     path: [
-      P('ribs', 0.14, 6.1, -0.42, 0.18, 0.08, { n: [0.2, 0, -1] }),
+      // from the base of the head
+      P('ribs', 0.14, 6.62, -0.52, 0.18, 0.08, { n: [0.2, 0, -1] }),
       // arms overhead shrug the shoulders: the slope bunches up, wider and thicker
       P('ribs', 0.42, 5.58, -0.52, 0.32, 0.18, { n: [0.2, 0.5, -0.85], ...armsUp([0.42, 5.5, -0.56], 0.46, 0.26) }),
       P('clavL', 1.12, 5.16, -0.42, 0.38, 0.2, { n: [0, 0.9, -0.44], ...armsUp([1.12, 5.12, -0.44], 0.46, 0.26) }),
@@ -379,10 +388,10 @@ const left: SweepDef[] = [
     ],
     label: 2,
   },
-  ...upperArm,
+  ...wholeArm,
 ]
 
-const toRight = (f: string) => f.replace(/^(clav|scap|sh|hum|arm)L/, '$1R')
+const toRight = (f: string) => f.replace(/^(clav|scap|sh|hum|arm|fore|rad|hand)L/, '$1R')
 
 const mirror = (def: SweepDef): SweepDef => ({
   ...def,
@@ -403,7 +412,6 @@ const WAIST_X = 0.78
 const HIPS_X = 1.07
 const RIM_X = 0.93
 /** Pieces whose width is a left-right measure, so it narrows along with the body. */
-const SCALED = new Set(['head'])
 
 /*
  * Forms that cannot simply be squeezed: the waist is so much narrower than the
@@ -418,6 +426,7 @@ const FEMALE_FORMS: Record<string, Partial<SweepDef>> = {
 function feminize(def: SweepDef): SweepDef {
   const own = FEMALE_FORMS[def.id]
   if (own) return { ...def, ...own }
+  if (def.id === 'head') return def
   if (def.solid) {
     // sculpted bones keep their shape and are stretched with the space they sit in
     const base = def.solid.frame.replace(/@.*/, '')
@@ -449,9 +458,6 @@ function feminize(def: SweepDef): SweepDef {
         alt: pt.alt?.p ? { ...pt.alt, p: squeeze(pt.alt.p) } : pt.alt,
       }
       if (soft) return resize(moved, Math.min(kx, 0.93), def.group === 'pecs' ? 0.55 : 0.72)
-      // a slimmer, longer-looking neck
-      if (def.id === 'head' && pt.p[1] < 5.9) return resize(moved, 0.8, 0.86)
-      if (SCALED.has(def.id)) return resize(moved, kx, kz)
       if (def.id === 'spine') return resize(moved, 0.9, 0.9)
       if (def.id === 'arm') return resize(moved, 0.8, 0.8)
       return moved
@@ -499,6 +505,9 @@ const ARM_GROUPS: Record<string, Partial<GroupDef>> = {
     color: '#ffd166',
     move: 'Raise the arm: the long head stretches out from under the shoulder blade, and the armpit opens between it and the lat.',
   },
+  flexors: {},
+  extensors: {},
+  ridge: {},
 }
 const upperArmGroups: GroupDef[] = armRig.groups.filter((g) => g.id in ARM_GROUPS).map((g) => ({ ...g, ...ARM_GROUPS[g.id] }))
 
@@ -652,6 +661,24 @@ function shoulderFrame(sh: ShoulderFrames, name: string, k: number): Matrix4 | n
   return m[2] === 'L' ? local : mul(FLIP, local, FLIP)
 }
 
+/** The forearm hangs straight from the elbow, with its carrying angle (left side, in the arm's frame). */
+const FOREARM_AT = mul(translate(0, ELBOW_Y, 0), rotZ(CARRY))
+
+/**
+ * The forearm and hand frames (`foreL`, `radL`, `handL`, `handL/indexA`...), riding on
+ * the arm; mirrored for the right side. The fingers keep the hand lesson's relaxed pose.
+ */
+function armFrame(name: string, get: (n: string) => Matrix4): Matrix4 | null {
+  const m = /^(fore|rad|hand)([LR])(?:\/(.+))?$/.exec(name)
+  if (!m) return null
+  const side = m[2]
+  const fix = (t: Matrix4) => (side === 'L' ? t : mul(FLIP, t, FLIP))
+  const fore = mul(get(`arm${side}`), fix(FOREARM_AT))
+  if (m[1] !== 'hand') return fore
+  const hand = mul(fore, fix(translate(...WRIST)))
+  return m[3] ? mul(hand, fix(relaxedHand(m[3]))) : hand
+}
+
 function build(female: boolean): RigDef {
   const shape = female ? feminize : (d: SweepDef) => d
   const leftSide = [...left.map(shape), ...(female ? [breast] : [])]
@@ -697,6 +724,8 @@ function build(female: boolean): RigDef {
           case 'ribs':
             return get('w@1')
           default: {
+            const arm = armFrame(name, get)
+            if (arm) return arm
             const local = shoulderFrame(shoulder, name, k)
             return local ? mul(get('w@1'), local) : IDENTITY
           }
@@ -717,8 +746,8 @@ const SIDES: LessonDef['sides'] = ['Front', 'Left side', 'Back', 'Right side']
  * where the camera starts, what the text is about, and which muscles are listed first -
  * and each names the other, so the app swaps them as the model is turned.
  */
-const FRONT_MUSCLES = ['breast', 'pecs', 'delts', 'abs', 'obliques', 'serratus', 'neck', 'traps', 'biceps', 'brachialis']
-const BACK_MUSCLES = ['traps', 'delts', 'scap', 'lats', 'erectors', 'obliques', 'triceps']
+const FRONT_MUSCLES = ['breast', 'pecs', 'delts', 'abs', 'obliques', 'serratus', 'neck', 'traps', 'biceps', 'brachialis', 'flexors', 'ridge']
+const BACK_MUSCLES = ['traps', 'delts', 'scap', 'lats', 'erectors', 'obliques', 'triceps', 'extensors']
 const firstThen = (first: string[], rest: string[]) => [...first, ...rest.filter((id) => !first.includes(id))]
 
 export const torsoLessons: LessonDef[] = [
@@ -730,7 +759,7 @@ export const torsoLessons: LessonDef[] = [
     blurb: 'Two solid masses - rib cage and hips - with a soft, stretchy middle. Chest and shoulders ride on the ribs; abs and obliques bridge the gap.',
     show: firstThen(FRONT_MUSCLES, BACK_MUSCLES),
     otherSide: 'torso-back',
-    view: { target: [0, 3.3, 0], fit: [6.2, 9.8], az: 20, el: 4 },
+    view: { target: [0, 3.05, 0], fit: [6.6, 10.6], az: 20, el: 4 },
     sides: SIDES,
     tips: [
       'Draw the rib cage and the hip block first. Every pose is just those two boxes tilting against each other.',
@@ -747,7 +776,7 @@ export const torsoLessons: LessonDef[] = [
     blurb: 'A kite on top, two big triangles sweeping up to the armpits, and two ropes along the spine.',
     show: firstThen(BACK_MUSCLES, FRONT_MUSCLES),
     otherSide: 'torso-front',
-    view: { target: [0, 3.3, 0], fit: [6.2, 9.8], az: 200, el: 4 },
+    view: { target: [0, 3.05, 0], fit: [6.6, 10.6], az: 200, el: 4 },
     sides: SIDES,
     tips: [
       'The spine is a groove, not a ridge - the muscles on both sides stand up higher than the bone.',
