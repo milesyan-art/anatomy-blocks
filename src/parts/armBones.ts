@@ -1,4 +1,4 @@
-import { bar, carve, egg, fuse, rod, sculpted } from '../engine/sdf'
+import { bar, carve, clip, egg, fuse, rod, sculpted } from '../engine/sdf'
 import type { Shape } from '../engine/sdf'
 import type { SolidDef, Vec3 } from '../engine/types'
 
@@ -122,3 +122,16 @@ const radiusMesh = sculpted('radius', { field: () => radiusShape().f, lo: [-0.2,
 export const humerusSolid = (frame: string): SolidDef => ({ frame, mesh: humerusMesh })
 export const ulnaSolid = (frame: string): SolidDef => ({ frame, mesh: ulnaMesh })
 export const radiusSolid = (frame: string): SolidDef => ({ frame, mesh: radiusMesh })
+
+/** Where the wrist (the hand's origin) sits in the radius' frame. */
+export const WRIST: Vec3 = [0.04, -2.58, 0]
+
+/** The lower ends of both forearm bones, for the hand on its own (palm facing forward, no twist). */
+const forearmStubMesh = sculpted('forearm-stub', {
+  field: () => clip(fuse(0, [radiusShape(), ulnaShape()]), 0.05, (_x, y) => y + 1.8).f,
+  lo: [-0.35, -2.7, -0.2],
+  hi: [0.4, -1.72, 0.2],
+  step: 0.016,
+})
+/** The forearm's lower end in the hand's own space (wrist at the origin). */
+export const forearmStubSolid = (frame: string): SolidDef => ({ frame, mesh: forearmStubMesh, offset: [-WRIST[0], -WRIST[1], -WRIST[2]] })

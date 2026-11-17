@@ -2,6 +2,8 @@ import { Matrix4, Vector3 } from 'three'
 import { DEG, P, makeFrames, mul, rotAbout, rotX, rotZ, translate } from '../engine/frames'
 import type { LessonDef, PathPoint, RigDef, SweepDef, Vec3 } from '../engine/types'
 import { humerusSolid, radiusSolid, ulnaSolid } from './armBones'
+import { handRig } from './hand'
+import { handBones } from './handBones'
 import { SHOULDER, clavicleSolid, scapulaSolid } from './torsoBones'
 
 /*
@@ -25,6 +27,8 @@ const RADIUS_HEAD = new Vector3(0.21, -0.08, 0.02)
 const ULNA_HEAD = new Vector3(-0.2, -2.48, 0)
 const TWIST_AXIS = ULNA_HEAD.clone().sub(RADIUS_HEAD).normalize()
 const IDENTITY = new Matrix4()
+/** The hand's own frames, in its relaxed pose (the arm rig has no finger controls). */
+const RELAXED = handRig.frames(Object.fromEntries(handRig.controls.map((c) => [c.id, c.def])))
 /** From the torso's space to this rig's, where the shoulder joint is the origin. */
 const TO_SHOULDER: Vec3 = [-SHOULDER[0], -SHOULDER[1], -SHOULDER[2]]
 
@@ -34,19 +38,6 @@ const OUT: PathPoint['n'] = [1, 0, 0]
 
 const elbowKey = (p: [number, number, number], w: number, h: number) => ({
   alt: { drive: 'elbow', p, w, h },
-})
-
-const finger = (id: string, x: number, len: number): SweepDef => ({
-  id,
-  group: 'hand',
-  kind: 'prop',
-  section: 'box',
-  seg: 2,
-  path: [
-    P('hand', x, -0.93, 0.02, 0.09, 0.075, { n: FRONT }),
-    P('hand', x * 1.06, -0.93 - len * 0.5, 0.07, 0.085, 0.07, { n: FRONT }),
-    P('hand', x * 1.1, -0.93 - len, 0.2, 0.07, 0.06, { n: FRONT }),
-  ],
 })
 
 const sweeps: SweepDef[] = [
@@ -59,35 +50,9 @@ const sweeps: SweepDef[] = [
   { id: 'ulna', group: 'bone', kind: 'bone', path: [], solid: ulnaSolid('fa') },
   { id: 'radius', group: 'bone', kind: 'bone', path: [], solid: radiusSolid('rad') },
 
-  // ───────────── hand (just a mitten of blocks, for orientation) ─────────────
-  {
-    id: 'palm',
-    group: 'hand',
-    kind: 'prop',
-    section: 'box',
-    path: [
-      P('hand', 0, 0, 0, 0.29, 0.12, { n: FRONT }),
-      P('hand', 0, -0.45, 0, 0.4, 0.13, { n: FRONT }),
-      P('hand', -0.01, -0.95, 0.02, 0.42, 0.1, { n: FRONT }),
-    ],
-  },
-  finger('finger-1', 0.3, 0.85),
-  finger('finger-2', 0.1, 0.95),
-  finger('finger-3', -0.1, 0.88),
-  finger('finger-4', -0.3, 0.68),
-  {
-    id: 'thumb',
-    group: 'hand',
-    kind: 'prop',
-    section: 'box',
-    seg: 2,
-    path: [
-      P('hand', 0.27, -0.1, 0.06, 0.14, 0.12, { n: [0.5, 0, 0.85] }),
-      P('hand', 0.5, -0.5, 0.16, 0.12, 0.1, { n: [0.5, 0, 0.85] }),
-      P('hand', 0.62, -0.85, 0.24, 0.085, 0.075, { n: [0.5, 0, 0.85] }),
-      P('hand', 0.68, -1.12, 0.3, 0.065, 0.06, { n: [0.5, 0, 0.85] }),
-    ],
-  },
+  // ───────────── hand ─────────────
+  // the hand's bones, fingers held relaxed (see handBones.ts)
+  ...handBones(),
 
   // ───────────── upper arm ─────────────
   {
@@ -324,8 +289,11 @@ export const armRig: RigDef = {
           return get('fa@1')
         case 'hand':
           return mul(get('fa@1'), translate(0.04, -2.58, 0))
+        case 'palm':
+          return get('hand')
         default:
-          return IDENTITY
+          // the finger and thumb bones, in the hand rig's relaxed pose
+          return name === 'sh' || name === 'hum' ? IDENTITY : mul(get('hand'), RELAXED(name))
       }
     }),
 }
