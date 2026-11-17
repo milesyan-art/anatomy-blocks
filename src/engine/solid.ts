@@ -56,8 +56,9 @@ export class Solid implements Form {
     this.pos = new Float32Array(V * 3)
     this.nor = new Float32Array(V * 3)
 
-    // a bone has no plane lines: every vertex sits mid-band (see the fill shader)
+    // no plane lines unless the mesh brings its own (every vertex mid-band otherwise; see the fill shader)
     const coord = new Float32Array(V * 2).fill(0.5)
+    if (mesh.ink) coord.set(mesh.ink)
     const g = this.geometry
     g.setAttribute('position', new BufferAttribute(this.pos, 3))
     g.setAttribute('normal', new BufferAttribute(this.nor, 3))
@@ -152,7 +153,7 @@ export function mirrorSolid(solid: SolidDef, mapFrame: (f: string) => string): S
           index[i + 1] = index[i + 2]
           index[i + 2] = t
         }
-        cached = { position, normal, index }
+        cached = { position, normal, index, ink: m.ink }
       }
       return cached
     }

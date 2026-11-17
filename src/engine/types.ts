@@ -76,6 +76,11 @@ export interface SolidMesh {
   position: Float32Array
   normal: Float32Array
   index: Uint32Array
+  /**
+   * Optional ink, two values per vertex (the fill shader's line coordinates): lines are
+   * drawn wherever either value crosses a whole number - see `facetInk`.
+   */
+  ink?: Float32Array
 }
 
 /**

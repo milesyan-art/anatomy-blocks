@@ -237,8 +237,9 @@ void main() {
     col = referenceShade(n);
   }
 
-  // ink the edges between planes
-  float da = min(vC.y, 1.0 - vC.y) / max(fwidth(vC.y), 1e-5);
+  // ink the edges between planes: wherever the across-strip coordinate is a whole number
+  // (the strips of a block run 0..1 and are inked at both edges; carved props also go negative)
+  float da = abs(vC.y - floor(vC.y + 0.5)) / max(fwidth(vC.y), 1e-5);
   float edge = 1.0 - smoothstep(0.4, 1.4, da);
   // cross-contour rings at every station
   float fx = abs(fract(vC.x + 0.5) - 0.5);

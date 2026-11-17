@@ -626,6 +626,76 @@ export function meshField(field: Field, lo: Vec3, hi: Vec3, step: number, symmet
   return { position, normal, index }
 }
 
+/** Colour a graph with four colours so neighbours always differ (backtracking; small graphs). */
+function fourColour(n: number, near: Set<number>[]): number[] {
+  const colour = new Array<number>(n).fill(-1)
+  const order = [...Array(n).keys()].sort((a, b) => near[b].size - near[a].size)
+  const place = (k: number): boolean => {
+    if (k === order.length) return true
+    const i = order[k]
+    for (let c = 0; c < 4; c++) {
+      if ([...near[i]].some((j) => colour[j] === c)) continue
+      colour[i] = c
+      if (place(k + 1)) return true
+    }
+    colour[i] = -1
+    return false
+  }
+  if (!place(0)) for (let i = 0; i < n; i++) if (colour[i] < 0) colour[i] = i % 4
+  return colour
+}
+
+/**
+ * Ink the edges of a carved form - a base shape cut by planes - and nothing else.
+ *
+ * Every vertex belongs to the face (field) that is highest there. Its two ink values
+ * start at 0 on an edge (where the two highest fields meet) and rise to 0.5 inside a
+ * face, each with a sign taken from the face's colour; touching faces get different
+ * colours, so at least one value changes sign across every edge - a crossing the fill
+ * shader inks - while inside a face both stay at a steady +-0.5 and draw nothing.
+ */
+export function facetInk(mesh: SolidMesh, fields: Field[], width = 0.03): Float32Array {
+  const p = mesh.position
+  const V = p.length / 3
+  const face = new Int32Array(V)
+  const rise = new Float32Array(V)
+  for (let v = 0; v < V; v++) {
+    let a = -Infinity
+    let b = -Infinity
+    let top = 0
+    for (let i = 0; i < fields.length; i++) {
+      const f = fields[i](p[v * 3], p[v * 3 + 1], p[v * 3 + 2])
+      if (f > a) {
+        b = a
+        a = f
+        top = i
+      } else if (f > b) b = f
+    }
+    face[v] = top
+    rise[v] = Math.min(0.5, (a - b) / width)
+  }
+  const near = fields.map(() => new Set<number>())
+  const idx = mesh.index
+  for (let t = 0; t < idx.length; t += 3) {
+    for (let e = 0; e < 3; e++) {
+      const i = face[idx[t + e]]
+      const j = face[idx[t + ((e + 1) % 3)]]
+      if (i !== j) {
+        near[i].add(j)
+        near[j].add(i)
+      }
+    }
+  }
+  const colour = fourColour(fields.length, near)
+  const ink = new Float32Array(V * 2)
+  for (let v = 0; v < V; v++) {
+    const c = colour[face[v]]
+    ink[v * 2] = (c & 1 ? -1 : 1) * rise[v]
+    ink[v * 2 + 1] = (c & 2 ? -1 : 1) * rise[v]
+  }
+  return ink
+}
+
 /* ───────────────────────── sculpted parts ───────────────────────── */
 
 /** How to build one sculpted part: its field (made on demand), the box to mesh, and the grid step. */
@@ -636,6 +706,11 @@ export interface Sculpt {
   step: number
   /** Mirror-symmetric across x = 0 (only half is evaluated). */
   symmetric?: boolean
+  /**
+   * For a carved form: the fields it was cut from (its base and each cutting plane).
+   * The edges where two of them meet are inked (see `facetInk`).
+   */
+  facets?: () => Field[]
 }
 
 const sculpts = new Map<string, Sculpt>()
@@ -646,6 +721,7 @@ function buildSculpt(key: string): SolidMesh {
   if (!mesh) {
     const s = sculpts.get(key) as Sculpt
     mesh = meshField(s.field(), s.lo, s.hi, s.step, s.symmetric)
+    if (s.facets) mesh.ink = facetInk(mesh, s.facets())
     sculptMeshes.set(key, mesh)
   }
   return mesh
