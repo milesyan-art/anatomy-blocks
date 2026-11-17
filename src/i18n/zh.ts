@@ -171,6 +171,7 @@ const content: Content = {
         '先画胸廓和髋部的方块。每个姿势都只是这两个盒子彼此倾斜。',
         '只有腰部会改变长度。无论什么姿势，胸部大小不变。',
         '侧弯时，找一侧的挤压和另一侧的拉伸。',
+        '抬起手臂：两根锁骨向上翘成 V 字，胸肌向上转进腋窝。',
       ],
     },
     'torso-back': {
@@ -180,6 +181,7 @@ const content: Content = {
         '脊柱是一道沟，不是一条棱，两侧的肌肉比骨头高。',
         '背阔肌形成背部的 V 形：腋下宽，腰部窄。',
         '扭转躯干，看风筝始终和肩膀保持方正，而髋部不动。',
+        '抬起手臂，肩胛骨会转动：它们的下角向外摆，绕到肋骨的侧面。',
       ],
     },
   },
@@ -439,8 +441,17 @@ const content: Content = {
         bend: { label: '前屈 / 后仰', lo: '后仰', hi: '卷腹' },
         lean: { label: '侧弯', lo: '◀', hi: '▶' },
         twist: { label: '扭转', lo: '◀', hi: '▶' },
+        arms: { label: '抬起手臂', lo: '放下', hi: '举过头顶' },
       },
-      presets: { Upright: '直立', Crunch: '卷腹', Arch: '后仰', 'Side bend': '侧弯', Twist: '扭转' },
+      presets: {
+        Upright: '直立',
+        Crunch: '卷腹',
+        Arch: '后仰',
+        'Side bend': '侧弯',
+        Twist: '扭转',
+        'Arms out': '双臂平举',
+        'Arms up': '双臂上举',
+      },
       groups: {
         breast: {
           name: '乳房',

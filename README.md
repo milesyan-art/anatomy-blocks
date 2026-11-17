@@ -75,7 +75,7 @@ Each link opens that part straight away.
 | ✋ | **Hand:** [Hand](https://anatomy-blocks.vercel.app/#hand) | Relaxed · Flat · Grip · Fist |
 | 🦵 | **Leg:** [Thigh](https://anatomy-blocks.vercel.app/#thigh) · [Lower leg](https://anatomy-blocks.vercel.app/#lower-leg) · [Whole leg](https://anatomy-blocks.vercel.app/#leg) | Standing · Tiptoe · Sitting · Deep bend |
 | 🦶 | **Foot:** [Foot](https://anatomy-blocks.vercel.app/#foot) | Flat · Tiptoe · Pointed · Flexed |
-| 🧍 | **Torso:** [Front](https://anatomy-blocks.vercel.app/#torso-front) · [Back](https://anatomy-blocks.vercel.app/#torso-back) | Upright · Crunch · Arch · Side bend · Twist |
+| 🧍 | **Torso:** [Front](https://anatomy-blocks.vercel.app/#torso-front) · [Back](https://anatomy-blocks.vercel.app/#torso-back) | Upright · Crunch · Arch · Side bend · Twist · Arms out · Arms up |
 
 <br />
 
