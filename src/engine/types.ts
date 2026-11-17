@@ -71,6 +71,28 @@ export interface SkinDef {
   label?: [number, number]
 }
 
+/** A ready-made mesh, in the coordinates of its frame. */
+export interface SolidMesh {
+  position: Float32Array
+  normal: Float32Array
+  index: Uint32Array
+}
+
+/**
+ * A form sculpted once at full resolution and then only carried along by one frame -
+ * for bones whose shape never changes (see `engine/sdf.ts`).
+ */
+export interface SolidDef {
+  /** The frame it is glued to. */
+  frame: string
+  /** Builds the mesh. Called once per form, so it should cache an expensive build. */
+  mesh: () => SolidMesh
+  /** Slides the whole mesh (in frame space), for rigs with a different origin. */
+  offset?: Vec3
+  /** Stretches the mesh about the frame's origin before sliding it (e.g. narrower female ribs). */
+  scale?: Vec3
+}
+
 export interface SweepDef {
   id: string
   /** Legend group id for muscles/tendons, anything for bones and props. */
@@ -79,11 +101,18 @@ export interface SweepDef {
   path: PathPoint[]
   /** Draw this form as a skin instead of sweeping a block along `path` (which then stays empty). */
   skin?: SkinDef
+  /** Draw this form as a sculpted solid instead (`path` then stays empty). */
+  solid?: SolidDef
   section?: SectionName
   /** Rings per span between two stations. */
   seg?: number
   /** How strongly the block thickens when its path gets shorter. */
   bulge?: number
+  /**
+   * Flat facets per span along the length, joined by narrow bevels (0 = smooth along the
+   * length). Muscles default to `MUSCLE_FACETS`; the plaster model is always smooth.
+   */
+  facets?: number
   /** Index of the station that carries the group's label. */
   label?: number
 }
@@ -140,6 +169,12 @@ export interface RigDef {
   frames: (pose: Pose) => FrameGetter
   /** Normalised 0..1 values that key shapes can follow. */
   drives: (pose: Pose) => Record<string, number>
+  /**
+   * Sliders that move together: called when the control `id` is dragged to `value`,
+   * returns the whole new pose (e.g. raising the leg also bends the knee, as people do).
+   * Left out = only that slider changes.
+   */
+  couple?: (pose: Pose, id: string, value: number) => Pose
   /**
    * Single limbs only: where the body's midline is (x) in this rig's space.
    * Limbs are modelled as the LEFT one; the right one is the same rig mirrored across this line.

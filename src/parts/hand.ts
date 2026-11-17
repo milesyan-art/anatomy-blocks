@@ -1,6 +1,8 @@
 import { Matrix4 } from 'three'
 import { DEG, P, makeFrames, mul, rotX, rotY, rotZ, translate } from '../engine/frames'
 import type { LessonDef, PathPoint, RigDef, SweepDef } from '../engine/types'
+import { forearmStubSolid } from './armBones'
+import { FINGERS, THUMB, handBones } from './handBones'
 
 /*
  * LEFT hand, fingers pointing down, palm facing +Z, thumb on +X.
@@ -16,85 +18,25 @@ const IDENTITY = new Matrix4()
 const FRONT: PathPoint['n'] = [0, 0, 1]
 const BACK: PathPoint['n'] = [0, 0, -1]
 
-interface Finger {
-  id: string
-  /** knuckle position on the palm */
-  x: number
-  y: number
-  /** bone lengths, knuckle to tip */
-  a: number
-  b: number
-  c: number
-  /** which way (and how much) it fans out */
-  fan: number
-}
-
-const FINGERS: Finger[] = [
-  { id: 'index', x: 0.3, y: -0.98, a: 0.46, b: 0.27, c: 0.23, fan: 1 },
-  { id: 'middle', x: 0.1, y: -1.02, a: 0.5, b: 0.31, c: 0.25, fan: 0.3 },
-  { id: 'ring', x: -0.1, y: -0.98, a: 0.46, b: 0.29, c: 0.24, fan: -0.4 },
-  { id: 'pinky', x: -0.29, y: -0.9, a: 0.36, b: 0.21, c: 0.21, fan: -1 },
-]
-
-const THUMB = { base: [0.3, -0.2, 0.08] as const, a: 0.42, b: 0.3, c: 0.27 }
-
-const bone = (id: string, f: string, len: number, w0: number, w1: number, tip = false): SweepDef => ({
-  id,
-  group: 'bone',
-  kind: 'bone',
-  section: 'box',
-  seg: 1,
-  path: [
-    P(f, 0, 0.03, 0, w0, w0 * 0.9, { n: FRONT }),
-    P(f, 0, -len, tip ? 0.01 : 0, w1, tip ? w1 * 0.7 : w1 * 0.9, { n: FRONT }),
-  ],
-})
-
-const fingerBones = FINGERS.flatMap((f) => [
-  bone(`${f.id}-1`, `${f.id}A`, f.a, 0.1, 0.09),
-  bone(`${f.id}-2`, `${f.id}B`, f.b, 0.09, 0.082),
-  bone(`${f.id}-3`, `${f.id}C`, f.c, 0.082, 0.07, true),
-])
-
 const tendons: SweepDef[] = FINGERS.map((f) => ({
   id: `tendon-${f.id}`,
   group: 'tendons',
   kind: 'tendon',
   path: [
+    // over the back of the wrist, down the long bone and over the knuckle onto the finger
     P('palm', f.x * 0.25, -0.02, -0.14, 0.035, 0.025, { n: BACK }),
-    P('palm', f.x * 0.7, -0.5, -0.15, 0.035, 0.025, { n: BACK }),
-    P('palm', f.x, f.y + 0.03, -0.12, 0.04, 0.035, { n: BACK }),
-    P(`${f.id}A`, 0, -0.14, -0.09, 0.03, 0.02, { n: BACK }),
+    P('palm', f.base + (f.x - f.base) * 0.45, -0.5, -0.085, 0.035, 0.025, { n: BACK }),
+    P('palm', f.x, f.y + 0.05, -0.1, 0.04, 0.03, { n: BACK }),
+    P(`${f.id}A`, 0, -0.14, -0.065, 0.03, 0.02, { n: BACK }),
   ],
   label: f.id === 'middle' ? 1 : undefined,
 }))
 
 const sweeps: SweepDef[] = [
-  // ───────────── base blocks ─────────────
-  {
-    id: 'forearm',
-    group: 'bone',
-    kind: 'bone',
-    section: 'crate',
-    seg: 2,
-    path: [P('palm', 0, 0.75, 0, 0.33, 0.21, { n: FRONT }), P('palm', 0, 0.1, 0, 0.29, 0.15, { n: FRONT })],
-  },
-  {
-    id: 'palm',
-    group: 'bone',
-    kind: 'bone',
-    section: 'crate',
-    seg: 2,
-    path: [
-      P('palm', 0, 0.04, 0, 0.3, 0.13, { n: FRONT }),
-      P('palm', 0, -0.5, 0, 0.42, 0.14, { n: FRONT }),
-      P('palm', 0, -1.0, 0, 0.44, 0.11, { n: FRONT }),
-    ],
-  },
-  ...fingerBones,
-  bone('thumb-1', 'thA', THUMB.a, 0.11, 0.1),
-  bone('thumb-2', 'thB', THUMB.b, 0.1, 0.09),
-  bone('thumb-3', 'thC', THUMB.c, 0.09, 0.075, true),
+  // ───────────── bones ─────────────
+  // the lower ends of the forearm bones, and the bones of the hand (see handBones.ts)
+  { id: 'forearm', group: 'bone', kind: 'bone', path: [], solid: forearmStubSolid('palm') },
+  ...handBones(),
 
   // ───────────── the soft parts ─────────────
   {

@@ -106,7 +106,10 @@ export default function App() {
 
   const setControl = (id: string, value: number) => {
     stopGlide()
-    setPoses((all) => ({ ...all, [rig.id]: { ...all[rig.id], [id]: value } }))
+    setPoses((all) => {
+      const pose = all[rig.id]
+      return { ...all, [rig.id]: rig.couple ? rig.couple(pose, id, value) : { ...pose, [id]: value } }
+    })
   }
 
   const glideTo = (target: Pose) => {

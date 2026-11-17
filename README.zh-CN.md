@@ -69,7 +69,7 @@
 | ✋ | **手：**[手](https://anatomy-blocks.vercel.app/#hand) | 放松 · 摊平 · 抓握 · 握拳 |
 | 🦵 | **腿：**[大腿](https://anatomy-blocks.vercel.app/#thigh) · [小腿](https://anatomy-blocks.vercel.app/#lower-leg) · [整条腿](https://anatomy-blocks.vercel.app/#leg) | 站立 · 踮脚 · 坐姿 · 深蹲 |
 | 🦶 | **脚：**[脚](https://anatomy-blocks.vercel.app/#foot) | 平放 · 踮脚 · 绷脚 · 勾脚 |
-| 🧍 | **躯干：**[正面](https://anatomy-blocks.vercel.app/#torso-front) · [背面](https://anatomy-blocks.vercel.app/#torso-back) | 直立 · 卷腹 · 后仰 · 侧弯 · 扭转 |
+| 🧍 | **躯干：**[正面](https://anatomy-blocks.vercel.app/#torso-front) · [背面](https://anatomy-blocks.vercel.app/#torso-back) | 直立 · 卷腹 · 后仰 · 侧弯 · 扭转 · 双臂平举 · 双臂上举 |
 
 <br />
 

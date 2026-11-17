@@ -1,77 +1,84 @@
-import { Matrix4 } from 'three'
-import { DEG, P, arc, cage, makeFrames, mirrorPoint, mirrorSkin, mul, rotX, rotY, rotZ, translate } from '../engine/frames'
-import type { GroupDef, LessonDef, PathPoint, RigDef, SkinDef, SkinPoint, SweepDef } from '../engine/types'
+import { Matrix4, Quaternion, Vector3 } from 'three'
+import {
+  DEG,
+  P,
+  arc,
+  makeFrames,
+  mirrorPoint,
+  mirrorSkin,
+  mul,
+  rotAbout,
+  rotX,
+  rotY,
+  rotZ,
+  translate,
+} from '../engine/frames'
+import type { GroupDef, LessonDef, PathPoint, RigDef, SkinDef, SkinPoint, SweepDef, Vec3 } from '../engine/types'
+import { mirrorSolid } from '../engine/solid'
 import { resize } from './body'
-import { pelvisBlocks, pelvisBowl } from './pelvis'
+import { armRig } from './arm'
+import { humerusSolid } from './armBones'
+import { pelvisBlocks, pelvisSolid } from './pelvis'
+import { SHOULDER, clavicleSolid, lumbarSolids, ribCageSolid, scapulaSolid } from './torsoBones'
 
 /*
  * Torso, facing +Z.   +X = the figure's left   +Y = up
  * The origin sits between the two hip joints. Rib cage spans y = 2 ... 5.
  *
  * Frames
- *   pelvis   hip block (never moves)
- *   w@k      waist, turned by k x the bend / lean / twist   (0 = pelvis ... 1 = ribs)
- *   ribs     rib cage (= w@1); neck and head ride along
- *   shL/shR  shoulder joint, still square to the ribs
- *   armL/R   upper arm, hanging slightly away from the body
+ *   pelvis    hip block (never moves)
+ *   w@k       waist, turned by k x the bend / lean / twist   (0 = pelvis ... 1 = ribs)
+ *   ribs      rib cage (= w@1); neck and head ride along
+ *   clavL/R   collarbone, lifted at the breastbone joint as the arm goes up
+ *   scapL/R   shoulder blade: hangs off the collarbone's tip and turns its socket upward
+ *   shL/shR   shoulder joint: carried by the blade, still square to the ribs
+ *   humL@k    the shoulder joint turned by k x the arm's swing, for flesh that wraps
+ *             the joint (0 = square to the ribs ... 1 = with the arm)
+ *   armL/R    upper arm, hanging slightly away from the body (or raised)
  *
+ * The collarbone, blade and shoulder frames are all identity (in rib space) at rest,
+ * so their stations are written in the same coordinates as the ribs.
  * Everything is modelled on the left (+X) and mirrored.
  */
 
 const WAIST: [number, number, number] = [0, 1.6, -0.35]
-const SHOULDER: [number, number, number] = [1.85, 4.55, -0.05]
-const ARM_OUT = 15 * DEG
+/** The collarbone's inner end, where it meets the breastbone. */
+const COLLAR_ROOT: [number, number, number] = [0.13, 4.92, 0.62]
+/** The tip of the shoulder (acromion), where the collarbone holds the shoulder blade. */
+const ACROMION: [number, number, number] = [1.85, 4.98, -0.06]
+/** How far the arm hangs away from the body at rest, in degrees. */
+const ARM_HANG = 15
+const ARM_OUT = ARM_HANG * DEG
+/*
+ * The arm lifts in the plane of the shoulder blade, a little forward of straight out
+ * to the side - the natural way to raise an arm.
+ */
+const LIFT_AXIS = new Vector3(-0.4, 0, 0.92).normalize()
+/** How far the arm can lift above its resting hang. */
+const LIFT_MAX = 180 - ARM_HANG
+/** The collarbone hinges up about a level line square to itself; this far with the arm overhead. */
+const COLLAR_AXIS = new Vector3(0.35, 0, 0.94).normalize()
+const COLLAR_LIFT = 20 * DEG
+/*
+ * The shoulder blade, hanging from the tip of the collarbone, turns so the socket faces
+ * up: its lower tip swings out and round the side of the ribs, while the top corner
+ * by the spine drops a little. Where those two corners sit with the arm overhead:
+ */
+const BLADE_TOP: [number, number, number] = [1.08, 4.72, -0.76]
+const BLADE_TIP: [number, number, number] = [0.86, 3.38, -0.9]
+const BLADE_TOP_UP: [number, number, number] = [0.95, 4.6, -0.8]
+const BLADE_TIP_UP: [number, number, number] = [1.3, 3.62, -0.42]
 const IDENTITY = new Matrix4()
+/** Mirror across the midline, to turn a left-side transform into the right one. */
+const FLIP = new Matrix4().makeScale(-1, 1, 1)
+
+/** A station's key shape for the arms raised all the way. */
+const armsUp = (p: Vec3, w: number, h: number) => ({ alt: { drive: 'arms', p, w, h } })
 
 const FRONT: PathPoint['n'] = [0, 0, 1]
 const BACK: PathPoint['n'] = [0, 0, -1]
-const UP: PathPoint['n'] = [0, 1, 0]
 const OUT: PathPoint['n'] = [1, 0, 0]
 
-/*
- * The spine between the rib cage and the hips, as one bendy block - not a stack of
- * vertebrae. Each station rides its own share of the waist turn, so it curves with a bend.
- */
-const spine: SweepDef = {
-  id: 'spine',
-  group: 'bone',
-  kind: 'bone',
-  section: 'crate',
-  path: [
-    P('ribs', 0, 3.05, -0.62, 0.22, 0.24, { n: FRONT }),
-    P('w@0.8', 0, 2.5, -0.58, 0.23, 0.24, { n: FRONT }),
-    P('w@0.5', 0, 1.95, -0.52, 0.25, 0.24, { n: FRONT }),
-    P('w@0.2', 0, 1.45, -0.52, 0.26, 0.24, { n: FRONT }),
-    P('pelvis', 0, 1.0, -0.56, 0.27, 0.22, { n: FRONT }),
-  ],
-}
-
-/*
- * The rib cage in one piece: a hollow egg, closed round the top, that opens at the
- * front below the breastbone into the arch of the lower ribs. The back stays nearly
- * upright and the front does the sloping - as on the real cage - which also keeps
- * every ring level.
- *   y, back z, outer width, outer depth (half sizes), half-width of the front gap in degrees
- */
-const CAGE: [number, number, number, number, number][] = [
-  [5.16, -0.8, 0.58, 0.42, 0],
-  [4.8, -0.86, 1.12, 0.78, 0],
-  [4.15, -0.94, 1.34, 0.94, 0],
-  [3.6, -0.97, 1.38, 0.98, 0],
-  [3.25, -0.97, 1.39, 0.97, 2.5],
-  [2.85, -0.96, 1.36, 0.94, 13.6],
-  [2.45, -0.94, 1.24, 0.89, 31.7],
-  [2.15, -0.9, 1.12, 0.82, 50],
-  [1.98, -0.87, 1.0, 0.75, 65.6],
-]
-
-/** The rib cage's stations, narrowed by kx and made shallower by kz. */
-function ribcage(kx: number, kz: number): PathPoint[] {
-  // a slightly boxy oval: broad, flattish back and sides, like the real cage
-  return CAGE.map(([y, back, w, d, open]) =>
-    cage('ribs', y, (back + d) * kz, w * kx, d * kz, open, 0.1 * kz, 0.78),
-  )
-}
 
 /*
  * The flank is not swept like the other blocks: it has to hug the ribs, pinch in at
@@ -127,8 +134,8 @@ const FLANK: [number, number, number, number][] = [
   [68, 3.42, 84, 0.0],
   [50, 3.36, 64, 0.38],
   [33, 3.28, 33, 0.81],
-  [15, 3.2, 13, 1.26],
-  [-5, 3.12, -6, 1.5],
+  [15, 3.2, 13, 1.19],
+  [-5, 3.12, -6, 1.46],
   [-26, 3.05, -28, 1.5],
   [-46, 3.0, -50, 1.5],
   // far enough round to tuck under the spine columns, so the back never shows a gap
@@ -169,26 +176,10 @@ function flank(trunk: Trunk): SkinDef {
 /** Things that sit on the midline (not mirrored). */
 const middle: SweepDef[] = [
   ...pelvisBlocks(),
-  spine,
-  {
-    id: 'ribcage',
-    group: 'bone',
-    kind: 'bone',
-    section: 'shell',
-    path: ribcage(1, 1),
-  },
-  {
-    id: 'sternum',
-    group: 'bone',
-    kind: 'bone',
-    section: 'box',
-    seg: 2,
-    path: [
-      P('ribs', 0, 4.92, 0.63, 0.24, 0.04, { n: [0, 0.3, 0.95] }),
-      P('ribs', 0, 4.1, 0.93, 0.16, 0.04, { n: [0, 0.2, 0.98] }),
-      P('ribs', 0, 3.4, 1.04, 0.08, 0.04, { n: FRONT }),
-    ],
-  },
+  // the rib cage with the thoracic spine and the breastbone, and the five lumbar
+  // vertebrae below it, each riding its share of the bend (see torsoBones.ts)
+  { id: 'ribcage', group: 'bone', kind: 'bone', path: [], solid: ribCageSolid() },
+  ...lumbarSolids().map(({ id, solid }): SweepDef => ({ id, group: 'bone', kind: 'bone', path: [], solid })),
   {
     id: 'head',
     group: 'head',
@@ -207,61 +198,30 @@ const middle: SweepDef[] = [
   },
 ]
 
+/*
+ * The upper arm's own muscles, borrowed from the arm lesson so that raising the arms
+ * shows what they do at the shoulder. They hang on the torso's arm frame; their tops
+ * on the shoulder blade are moved into the trunk's space, and their bottoms - which
+ * cross the elbow onto the forearm - sit just under the elbow (it stays straight here).
+ */
+const UPPER_ARM = new Set(['brachialis', 'biceps', 'triceps-medial', 'triceps-long', 'triceps-lateral', 'triceps-tendon'])
+const ELBOW_Y = -3
+const fromArm = (pt: PathPoint): PathPoint => {
+  const base = pt.f.replace(/@.*/, '')
+  if (base === 'sh') return { ...pt, f: 'scapL', p: [pt.p[0] + SHOULDER[0], pt.p[1] + SHOULDER[1], pt.p[2] + SHOULDER[2]] }
+  if (base === 'hum') return { ...pt, f: 'armL' }
+  return { ...pt, f: 'armL', p: [pt.p[0], pt.p[1] + ELBOW_Y, pt.p[2]], alt: undefined }
+}
+const upperArm: SweepDef[] = armRig.sweeps.filter((d) => UPPER_ARM.has(d.id)).map((d) => ({ ...d, path: d.path.map(fromArm) }))
+
 /** The left half. */
 const left: SweepDef[] = [
   // ───────────── bones + props ─────────────
-  {
-    id: 'clavicle',
-    group: 'bone',
-    kind: 'bone',
-    section: 'hex',
-    path: [
-      P('ribs', 0.13, 4.92, 0.62, 0.09, 0.08, { n: UP }),
-      P('ribs', 0.8, 4.98, 0.66, 0.085, 0.075, { n: UP }),
-      P('ribs', 1.42, 5.04, 0.36, 0.08, 0.07, { n: UP }),
-      P('ribs', 1.8, 5.0, 0.0, 0.1, 0.07, { n: UP }),
-    ],
-  },
-  {
-    // a triangle on the back of the ribs: upright inner edge, lower tip, outer corner at the shoulder
-    id: 'scapula',
-    group: 'bone',
-    kind: 'bone',
-    section: 'box',
-    path: [
-      P('ribs', 1.08, 4.72, -0.76, 0.5, 0.045, { n: [0.42, 0, -0.91] }),
-      P('ribs', 1.0, 4.1, -0.86, 0.36, 0.045, { n: [0.36, 0, -0.93] }),
-      P('ribs', 0.86, 3.38, -0.9, 0.06, 0.04, { n: [0.3, 0, -0.95] }),
-    ],
-  },
-  {
-    id: 'scapula-spine',
-    group: 'bone',
-    kind: 'bone',
-    section: 'hex',
-    seg: 2,
-    // the ridge across the shoulder blade, ending in the flat tip (acromion) that meets the collarbone
-    path: [
-      P('ribs', 0.68, 4.52, -0.98, 0.05, 0.06, { n: UP }),
-      P('ribs', 1.3, 4.78, -0.86, 0.07, 0.09, { n: [0, 0.6, -0.8] }),
-      P('ribs', 1.7, 4.94, -0.42, 0.1, 0.08, { n: UP }),
-      P('ribs', 1.9, 4.96, -0.08, 0.14, 0.06, { n: UP }),
-    ],
-  },
-  {
-    id: 'arm',
-    group: 'arm',
-    kind: 'prop',
-    section: 'crate',
-    path: [
-      // the ball of the upper arm sits right under the shoulder tip
-      P('armL', 0, 0.3, 0, 0.18, 0.2, { n: FRONT }),
-      P('armL', 0, 0.04, 0, 0.32, 0.36, { n: FRONT }),
-      P('armL', 0.02, -0.8, 0, 0.35, 0.42, { n: FRONT }),
-      P('armL', 0, -1.8, 0, 0.33, 0.4, { n: FRONT }),
-      P('armL', 0, -2.6, 0, 0.29, 0.33, { n: FRONT }),
-    ],
-  },
+  { id: 'clavicle', group: 'bone', kind: 'bone', path: [], solid: clavicleSolid('clavL') },
+  { id: 'scapula', group: 'bone', kind: 'bone', path: [], solid: scapulaSolid('scapL') },
+  // the upper arm bone (shared with the arm rig, see armBones.ts)
+  { id: 'arm', group: 'bone', kind: 'bone', path: [], solid: humerusSolid('armL') },
+
 
   // ───────────── front ─────────────
   {
@@ -277,7 +237,8 @@ const left: SweepDef[] = [
       P('w@0.5', 0.31, 1.78, 1.0, 0.29, 0.12, { n: FRONT }),
       P('w@0.25', 0.28, 1.14, 0.95, 0.26, 0.1, { n: FRONT }),
       P('pelvis', 0.2, 0.42, 0.84, 0.2, 0.08, { n: [0, -0.2, 1] }),
-      P('pelvis', 0.1, -0.12, 0.64, 0.1, 0.06, { n: [0, -0.4, 0.9] }),
+      // ends on the pubic crest, on top of the joint between the two hip bones
+      P('pelvis', 0.11, 0.02, 0.58, 0.1, 0.05, { n: [0, -0.2, 1] }),
     ],
     label: 2,
   },
@@ -364,8 +325,8 @@ const left: SweepDef[] = [
     group: 'scap',
     kind: 'muscle',
     path: [
-      P('ribs', 0.95, 4.1, -1.0, 0.3, 0.1, { n: [0.2, 0, -1] }),
-      P('ribs', 1.45, 4.25, -0.75, 0.32, 0.14, { n: [0.5, 0, -0.87] }),
+      P('scapL', 0.95, 4.1, -1.0, 0.3, 0.1, { n: [0.2, 0, -1] }),
+      P('scapL', 1.45, 4.25, -0.75, 0.32, 0.14, { n: [0.5, 0, -0.87] }),
       P('armL', 0, -0.35, -0.25, 0.12, 0.08, { n: [0.3, 0, -0.95] }),
     ],
     label: 1,
@@ -378,8 +339,8 @@ const left: SweepDef[] = [
     path: [
       P('ribs', 0.06, 3.95, -1.02, 1.2, 0.07, { n: BACK }),
       P('ribs', 0.7, 4.35, -1.02, 0.7, 0.12, { n: [0.1, 0, -1] }),
-      P('ribs', 1.4, 4.75, -0.7, 0.3, 0.12, { n: [0.3, 0.4, -0.87] }),
-      P('ribs', 1.9, 4.95, -0.3, 0.1, 0.06, { n: [0.4, 0.7, -0.6] }),
+      P('scapL', 1.4, 4.75, -0.7, 0.3, 0.12, { n: [0.3, 0.4, -0.87] }),
+      P('scapL', 1.9, 4.95, -0.3, 0.1, 0.06, { n: [0.4, 0.7, -0.6] }),
     ],
     label: 1,
   },
@@ -389,9 +350,10 @@ const left: SweepDef[] = [
     kind: 'muscle',
     path: [
       P('ribs', 0.14, 6.1, -0.42, 0.18, 0.08, { n: [0.2, 0, -1] }),
-      P('ribs', 0.42, 5.58, -0.52, 0.32, 0.18, { n: [0.2, 0.5, -0.85] }),
-      P('ribs', 1.12, 5.16, -0.42, 0.38, 0.2, { n: [0, 0.9, -0.44] }),
-      P('ribs', 1.88, 5.04, -0.12, 0.14, 0.08, { n: [0.2, 0.95, -0.2] }),
+      // arms overhead shrug the shoulders: the slope bunches up, wider and thicker
+      P('ribs', 0.42, 5.58, -0.52, 0.32, 0.18, { n: [0.2, 0.5, -0.85], ...armsUp([0.42, 5.5, -0.56], 0.46, 0.26) }),
+      P('clavL', 1.12, 5.16, -0.42, 0.38, 0.2, { n: [0, 0.9, -0.44], ...armsUp([1.12, 5.12, -0.44], 0.46, 0.26) }),
+      P('clavL', 1.88, 5.04, -0.12, 0.14, 0.08, { n: [0.2, 0.95, -0.2] }),
     ],
   },
 
@@ -402,17 +364,25 @@ const left: SweepDef[] = [
     kind: 'muscle',
     section: 'sheet7',
     path: [
-      P('shL', 0.12, 0.44, 0, 0.62, 0.12, { n: [0.5, 0.85, 0], curl: 3.2 }),
-      P('shL', 0.3, 0.1, 0, 0.58, 0.3, { n: [1, 0.15, 0], curl: 3.0 }),
+      /*
+       * With the arm overhead the insertion ends up above the origin, packed in next
+       * to the shoulder tip, and a pad that still ran over the ball would fold on
+       * itself. So the top two stations turn with the arm, and their key shapes line
+       * them up along it: overhead, the deltoid is a straight teardrop on the arm with
+       * its root tucked in under the shoulder tip.
+       */
+      P('humL@0.8', 0.12, 0.44, 0, 0.62, 0.12, { n: [0.5, 0.85, 0], curl: 3.2, ...armsUp([0.34, 0.09, 0], 0.42, 0.06) }),
+      P('humL@1', 0.3, 0.1, 0, 0.58, 0.3, { n: [1, 0.15, 0], curl: 3.0, ...armsUp([0.37, -0.25, 0], 0.52, 0.3) }),
       P('armL', 0.27, -0.5, 0, 0.44, 0.3, { n: OUT, curl: 2.6 }),
       P('armL', 0.21, -1.02, 0, 0.26, 0.2, { n: OUT, curl: 1.8 }),
       P('armL', 0.16, -1.48, 0.01, 0.06, 0.05, { n: OUT }),
     ],
     label: 2,
   },
+  ...upperArm,
 ]
 
-const toRight = (f: string) => f.replace('armL', 'armR').replace('shL', 'shR')
+const toRight = (f: string) => f.replace(/^(clav|scap|sh|hum|arm)L/, '$1R')
 
 const mirror = (def: SweepDef): SweepDef => ({
   ...def,
@@ -421,6 +391,7 @@ const mirror = (def: SweepDef): SweepDef => ({
   label: undefined,
   path: def.path.map((pt) => mirrorPoint(pt, toRight)),
   skin: def.skin && mirrorSkin(def.skin, toRight),
+  solid: def.solid && mirrorSolid(def.solid, toRight),
 })
 
 /*
@@ -432,7 +403,7 @@ const WAIST_X = 0.78
 const HIPS_X = 1.07
 const RIM_X = 0.93
 /** Pieces whose width is a left-right measure, so it narrows along with the body. */
-const SCALED = new Set(['scapula', 'sternum', 'head'])
+const SCALED = new Set(['head'])
 
 /*
  * Forms that cannot simply be squeezed: the waist is so much narrower than the
@@ -441,13 +412,18 @@ const SCALED = new Set(['scapula', 'sternum', 'head'])
 const FEMALE_FORMS: Record<string, Partial<SweepDef>> = {
   obliques: { skin: flank(TRUNK_FEMALE) },
   // a narrower rim, a wider underside: female hips are widest low down, at the top of the thigh
-  pelvis: { path: pelvisBowl(RIM_X, HIPS_X) },
-  ribcage: { path: ribcage(RIBS_X, 0.93) },
+  pelvis: { solid: pelvisSolid(RIM_X, HIPS_X) },
 }
 
 function feminize(def: SweepDef): SweepDef {
   const own = FEMALE_FORMS[def.id]
   if (own) return { ...def, ...own }
+  if (def.solid) {
+    // sculpted bones keep their shape and are stretched with the space they sit in
+    const base = def.solid.frame.replace(/@.*/, '')
+    const k: Vec3 | null = base === 'ribs' || base === 'clavL' || base === 'scapL' ? [RIBS_X, 1, 0.93] : base === 'w' ? [WAIST_X, 1, 0.9] : null
+    return k ? { ...def, solid: { ...def.solid, scale: k } } : def
+  }
   const soft = def.kind === 'muscle' || def.kind === 'tendon'
   return {
     ...def,
@@ -455,7 +431,8 @@ function feminize(def: SweepDef): SweepDef {
       const base = pt.f.split('@')[0]
       let kx = 1
       let kz = 1
-      if (base === 'ribs') {
+      // the collarbone and shoulder blade frames are written in rib coordinates
+      if (base === 'ribs' || base === 'clavL' || base === 'scapL') {
         kx = pt.p[1] > 5.4 ? 0.93 : RIBS_X
         kz = 0.93
       } else if (base === 'w') {
@@ -465,7 +442,12 @@ function feminize(def: SweepDef): SweepDef {
       } else if (base === 'pelvis') {
         kx = HIPS_X
       }
-      const moved: PathPoint = { ...pt, p: [pt.p[0] * kx, pt.p[1], pt.p[2] * kz] }
+      const squeeze = (p: Vec3): Vec3 => [p[0] * kx, p[1], p[2] * kz]
+      const moved: PathPoint = {
+        ...pt,
+        p: squeeze(pt.p),
+        alt: pt.alt?.p ? { ...pt.alt, p: squeeze(pt.alt.p) } : pt.alt,
+      }
       if (soft) return resize(moved, Math.min(kx, 0.93), def.group === 'pecs' ? 0.55 : 0.72)
       // a slimmer, longer-looking neck
       if (def.id === 'head' && pt.p[1] < 5.9) return resize(moved, 0.8, 0.86)
@@ -482,10 +464,11 @@ const breast: SweepDef = {
   group: 'breast',
   kind: 'muscle',
   path: [
-    P('ribs', 0.5, 4.36, 1.0, 0.14, 0.04, { n: [0, 0.3, 0.95] }),
-    P('ribs', 0.58, 4.0, 1.07, 0.32, 0.22, { n: [0.1, 0.1, 1] }),
-    P('ribs', 0.64, 3.66, 1.08, 0.38, 0.36, { n: [0.15, -0.1, 1] }),
-    P('ribs', 0.64, 3.38, 1.0, 0.24, 0.14, { n: [0.1, -0.5, 0.85] }),
+    // arms overhead lift it and draw it a little flatter against the chest
+    P('ribs', 0.5, 4.36, 1.0, 0.14, 0.04, { n: [0, 0.3, 0.95], ...armsUp([0.52, 4.42, 1.0], 0.14, 0.04) }),
+    P('ribs', 0.58, 4.0, 1.07, 0.32, 0.22, { n: [0.1, 0.1, 1], ...armsUp([0.62, 4.14, 1.06], 0.32, 0.2) }),
+    P('ribs', 0.64, 3.66, 1.08, 0.38, 0.36, { n: [0.15, -0.1, 1], ...armsUp([0.68, 3.82, 1.07], 0.37, 0.32) }),
+    P('ribs', 0.64, 3.38, 1.0, 0.24, 0.14, { n: [0.1, -0.5, 0.85], ...armsUp([0.68, 3.56, 1.0], 0.24, 0.14) }),
   ],
   label: 2,
 }
@@ -499,6 +482,25 @@ const breastGroup: GroupDef = {
   shape: 'A water-balloon teardrop: flat slope on top, full and round underneath. Each one points slightly outward.',
   move: 'It is attached to the rib cage, so it tilts and turns with the ribs. The chest muscle still shows above and towards the armpit.',
 }
+
+/*
+ * Their groups, as in the arm lesson - recoloured where they would match a neighbour
+ * here, and with what to watch when the arm goes up rather than when the elbow bends.
+ */
+const ARM_GROUPS: Record<string, Partial<GroupDef>> = {
+  biceps: {
+    move: 'Raise the arm and it swings up with the arm bone, its top tucked under the chest muscle and the deltoid.',
+  },
+  brachialis: {
+    color: '#c9a0f0',
+    move: 'From the front it peeks out on both sides of the biceps, just above the elbow.',
+  },
+  triceps: {
+    color: '#ffd166',
+    move: 'Raise the arm: the long head stretches out from under the shoulder blade, and the armpit opens between it and the lat.',
+  },
+}
+const upperArmGroups: GroupDef[] = armRig.groups.filter((g) => g.id in ARM_GROUPS).map((g) => ({ ...g, ...ARM_GROUPS[g.id] }))
 
 const groups: GroupDef[] = [
   {
@@ -591,14 +593,71 @@ const groups: GroupDef[] = [
     shape: 'Two ropes with a groove (the spine) between them. Thickest in the small of the back.',
     move: 'Arch back and they bunch up; crunch forward and they stretch and flatten.',
   },
+  ...upperArmGroups,
 ]
+
+/** A turn that carries the pair of directions (a1, a2) onto (b1, b2), as near as a turn can. */
+function turnOnto(a1: Vector3, a2: Vector3, b1: Vector3, b2: Vector3): Quaternion {
+  const basis = (u: Vector3, v: Vector3) => {
+    const x = u.clone().normalize()
+    const z = x.clone().cross(v).normalize()
+    return new Matrix4().makeBasis(x, z.clone().cross(x), z)
+  }
+  const m = basis(b1, b2).multiply(basis(a1, a2).transpose())
+  return new Quaternion().setFromRotationMatrix(m)
+}
+
+/** Builds the left shoulder for one body. `kx` / `kz` narrow the girdle along with the ribs. */
+function makeShoulder(kx: number, kz: number) {
+  const at = (p: [number, number, number]) => new Vector3(p[0] * kx, p[1], p[2] * kz)
+  const root = at(COLLAR_ROOT)
+  const tip = at(ACROMION)
+  const joint = at(SHOULDER)
+  // the blade's full turn, worked out once from where its corners go
+  const tipUp = tip.clone().applyMatrix4(rotAbout(root, COLLAR_AXIS, COLLAR_LIFT))
+  const bladeUp = turnOnto(
+    at(BLADE_TIP).sub(tip),
+    at(BLADE_TOP).sub(tip),
+    at(BLADE_TIP_UP).sub(tipUp),
+    at(BLADE_TOP_UP).sub(tipUp),
+  )
+  const still = new Quaternion()
+
+  /**
+   * The left shoulder's frames, relative to the rib cage, for an arm raised `lift`
+   * degrees above its resting hang.
+   */
+  return (lift: number) => {
+    const t = Math.min(1, Math.max(0, lift / LIFT_MAX))
+    const clav = rotAbout(root, COLLAR_AXIS, COLLAR_LIFT * t)
+    // the blade hangs from the collarbone's tip and turns about it
+    const lifted = tip.clone().applyMatrix4(clav)
+    const turn = new Matrix4().makeRotationFromQuaternion(still.clone().slerp(bladeUp, t))
+    const scap = mul(translate(lifted.x, lifted.y, lifted.z), turn, translate(-tip.x, -tip.y, -tip.z))
+    // the socket rides on the blade; the arm's own angle comes straight from the slider
+    const socket = joint.clone().applyMatrix4(scap)
+    const hum = (k: number) => mul(translate(socket.x, socket.y, socket.z), new Matrix4().makeRotationAxis(LIFT_AXIS, lift * DEG * k))
+    return { clav, scap, sh: hum(0), hum, arm: mul(hum(1), rotZ(ARM_OUT)) }
+  }
+}
+
+type ShoulderFrames = ReturnType<ReturnType<typeof makeShoulder>>
+
+/** Picks one shoulder frame (`clavL`, `humR@0.3`...), mirrored for the right side. */
+function shoulderFrame(sh: ShoulderFrames, name: string, k: number): Matrix4 | null {
+  const m = /^(clav|scap|sh|hum|arm)([LR])$/.exec(name)
+  if (!m) return null
+  const part = m[1] as keyof ShoulderFrames
+  const local = part === 'hum' ? sh.hum(k) : sh[part]
+  return m[2] === 'L' ? local : mul(FLIP, local, FLIP)
+}
 
 function build(female: boolean): RigDef {
   const shape = female ? feminize : (d: SweepDef) => d
   const leftSide = [...left.map(shape), ...(female ? [breast] : [])]
   // labels read the left copy first, so list it first within each group
   const sweeps: SweepDef[] = [...middle.map(shape), ...leftSide, ...leftSide.map(mirror)]
-  const shoulderX = SHOULDER[0] * (female ? RIBS_X : 1)
+  const shoulderAt = female ? makeShoulder(RIBS_X, 0.93) : makeShoulder(1, 1)
 
   return {
     id: 'torso',
@@ -606,19 +665,25 @@ function build(female: boolean): RigDef {
       { id: 'bend', label: 'Bend forward / back', min: -22, max: 40, def: 0, lo: 'arch back', hi: 'crunch' },
       { id: 'lean', label: 'Lean sideways', min: -28, max: 28, def: 0, lo: '◀', hi: '▶' },
       { id: 'twist', label: 'Twist', min: -40, max: 40, def: 0, lo: '◀', hi: '▶' },
+      // the angle between arm and body, so 90° is straight out to the side
+      { id: 'arms', label: 'Raise the arms', min: ARM_HANG, max: 180, def: ARM_HANG, lo: 'down', hi: 'overhead' },
     ],
     presets: [
-      { label: 'Upright', pose: { bend: 0, lean: 0, twist: 0 } },
+      { label: 'Upright', pose: { bend: 0, lean: 0, twist: 0, arms: ARM_HANG } },
       { label: 'Crunch', pose: { bend: 38, lean: 0, twist: 0 } },
       { label: 'Arch', pose: { bend: -20, lean: 0, twist: 0 } },
       { label: 'Side bend', pose: { bend: 0, lean: 26, twist: 0 } },
       { label: 'Twist', pose: { bend: 5, lean: 0, twist: 36 } },
+      { label: 'Arms out', pose: { arms: 90 } },
+      { label: 'Arms up', pose: { arms: 170 } },
     ],
     groups: female ? [breastGroup, ...groups] : groups,
     sweeps,
-    drives: (pose) => ({ bend: pose.bend / 40 }),
-    frames: (pose) =>
-      makeFrames((name, k, get) => {
+    drives: (pose) => ({ bend: pose.bend / 40, arms: (pose.arms - ARM_HANG) / LIFT_MAX }),
+    frames: (pose) => {
+      // the rest pose (every control at 0) counts as the resting hang
+      const shoulder = shoulderAt(Math.max(0, pose.arms - ARM_HANG))
+      return makeFrames((name, k, get) => {
         switch (name) {
           case 'w':
             if (k === 0) return IDENTITY
@@ -631,18 +696,13 @@ function build(female: boolean): RigDef {
             )
           case 'ribs':
             return get('w@1')
-          case 'shL':
-            return mul(get('w@1'), translate(shoulderX, SHOULDER[1], SHOULDER[2]))
-          case 'shR':
-            return mul(get('w@1'), translate(-shoulderX, SHOULDER[1], SHOULDER[2]))
-          case 'armL':
-            return mul(get('shL'), rotZ(ARM_OUT))
-          case 'armR':
-            return mul(get('shR'), rotZ(-ARM_OUT))
-          default:
-            return IDENTITY
+          default: {
+            const local = shoulderFrame(shoulder, name, k)
+            return local ? mul(get('w@1'), local) : IDENTITY
+          }
         }
-      }),
+      })
+    },
   }
 }
 
@@ -657,8 +717,8 @@ const SIDES: LessonDef['sides'] = ['Front', 'Left side', 'Back', 'Right side']
  * where the camera starts, what the text is about, and which muscles are listed first -
  * and each names the other, so the app swaps them as the model is turned.
  */
-const FRONT_MUSCLES = ['breast', 'pecs', 'delts', 'abs', 'obliques', 'serratus', 'neck', 'traps']
-const BACK_MUSCLES = ['traps', 'delts', 'scap', 'lats', 'erectors', 'obliques']
+const FRONT_MUSCLES = ['breast', 'pecs', 'delts', 'abs', 'obliques', 'serratus', 'neck', 'traps', 'biceps', 'brachialis']
+const BACK_MUSCLES = ['traps', 'delts', 'scap', 'lats', 'erectors', 'obliques', 'triceps']
 const firstThen = (first: string[], rest: string[]) => [...first, ...rest.filter((id) => !first.includes(id))]
 
 export const torsoLessons: LessonDef[] = [
@@ -676,6 +736,7 @@ export const torsoLessons: LessonDef[] = [
       'Draw the rib cage and the hip block first. Every pose is just those two boxes tilting against each other.',
       'Only the waist changes length. Chest stays the same size whatever the pose.',
       'On a side bend, look for the pinch on one side and the long stretch on the other.',
+      'Raise the arms: the collarbones tip up into a V and the chest muscle swings up into the armpit.',
     ],
   },
   {
@@ -692,6 +753,7 @@ export const torsoLessons: LessonDef[] = [
       'The spine is a groove, not a ridge - the muscles on both sides stand up higher than the bone.',
       'Lats make the V-shape of the back: wide under the armpits, narrow at the waist.',
       'Twist the torso and watch the kite stay square to the shoulders while the hips stay put.',
+      'Raise the arms and the shoulder blades turn: their lower tips swing out round the side of the ribs.',
     ],
   },
 ]
