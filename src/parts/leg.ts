@@ -39,19 +39,20 @@ const FRONT: PathPoint['n'] = [0, 0, 1]
 const BACK: PathPoint['n'] = [0, 0, -1]
 const OUT: PathPoint['n'] = [1, 0, 0]
 
-/** A skin control point on the pelvis, given in pelvis space. */
-const skinOnPelvis = (p: Vec3, h: number): SkinPoint => ({ f: 'pelvis', p: onPelvis(p), h })
+/** A skin control point given in pelvis space; `f` = the frame it rides (thigh@k to follow part of the leg raise). */
+const skinOnPelvis = (p: Vec3, h: number, f = 'pelvis'): SkinPoint => ({ f, p: onPelvis(p), h })
 
 /*
  * Gluteus medius: a thick fan on the outside of the blade. Its top edge follows the
  * crest from just behind the front point round to the back; its fibres gather onto
  * the top of the big knob of the thigh bone (greater trochanter).
+ * Its lower rows turn part of the way with the leg raise, so it wraps the hip instead of bunching.
  * Columns run front to back (to the right, seen from outside); rows run down.
  */
 function gluteMed(): SkinDef {
   const top = [0.3, 0.04, -0.26, -0.52, -0.74].map((z) => skinOnPelvis(bladePoint(crestHeight(z) - 0.1, z, 0.05), 0.05))
-  const belly = [0.24, 0.02, -0.22, -0.44, -0.62].map((z) => skinOnPelvis(bladePoint(0.9, z, 0.16), 0.16))
-  const low = [0.15, 0.03, -0.1, -0.22, -0.34].map((z) => skinOnPelvis(bladePoint(0.45, z, 0.15), 0.14))
+  const belly = [0.24, 0.02, -0.22, -0.44, -0.62].map((z) => skinOnPelvis(bladePoint(0.9, z, 0.16), 0.16, 'thigh@0.2'))
+  const low = [0.15, 0.03, -0.1, -0.22, -0.34].map((z) => skinOnPelvis(bladePoint(0.45, z, 0.15), 0.14, 'thigh@0.55'))
   const insertion = [0.07, 0.02, -0.04, -0.1, -0.16].map((z): SkinPoint => ({ f: 'femur', p: [0.63, 0.12, z], h: 0.07 }))
   return { rows: [top, belly, low, insertion], lines: [1, 2, 3], label: [1, 2] }
 }
@@ -93,6 +94,8 @@ const sweeps: SweepDef[] = [
     path: [
       // origin: the front point of the hip and the first stretch of crest behind it
       PL(bladePoint(0.94, 0.44, -0.03), 0.1, 0.05, { n: [0.75, 0.1, 0.65] }),
+      // one more station over the front of the hip, so it bends round the joint in two steps
+      P('thigh@0.35', 0.56, 0.48, 0.34, 0.14, 0.1, { n: [0.8, 0.05, 0.6] }),
       P('thigh@0.7', 0.62, 0.1, 0.25, 0.17, 0.12, { n: [0.9, 0, 0.44] }),
       P('femur', 0.7, -0.7, 0.14, 0.12, 0.07, { n: [1, 0, 0.2] }),
     ],
