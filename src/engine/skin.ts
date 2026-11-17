@@ -108,15 +108,21 @@ export class Skin implements Form {
   private readonly bounds: number[]
   /** Shade each band as one plane (the block look) instead of as a smooth curve. */
   private readonly facet: boolean
+  /** Grid rows per flat facet down the pad (0 = smooth down it); the rows between facets are the bevels. */
+  private readonly facetRows: number
+  private readonly facetN: Float32Array
   private restLen = 0
 
-  constructor(def: SweepDef, skin: SkinDef, smooth = false) {
+  /** `facets`: flat facets per control span down the pad, like a swept muscle's (0 = smooth). */
+  constructor(def: SweepDef, skin: SkinDef, smooth = false, facets = 0) {
     this.def = def
     this.skin = skin
     this.facet = !smooth
     const N = (this.N = skin.rows.length)
     const M = (this.M = skin.rows[0].length)
     const sub = (this.sub = skin.sub ?? 8)
+    this.facetRows = smooth || facets <= 0 ? 0 : Math.max(1, Math.round(sub / facets))
+    this.facetN = new Float32Array(Math.ceil(((N - 1) * sub) / Math.max(this.facetRows, 1)) * 3)
     const NV = (this.NV = (N - 1) * sub + 1)
     const NU = (this.NU = (M - 1) * sub + 1)
     const G = NV * NU
@@ -335,16 +341,55 @@ export class Skin implements Form {
       onor[dst + 2] = nz
     }
 
-    // the outer face, band by band. On the block model every band is shaded as one plane -
-    // flat across, smooth along, like the strips of a swept block - and only the rolled
-    // edge keeps its true roundness.
+    // the outer face, band by band. On the block model every band is shaded as one plane
+    // across, and - with facets - as flat facets down its length with a bevel row between
+    // them, like the strips of a swept muscle; only the rolled edge keeps its true roundness.
     const outerVerts = this.outerMap.length
     let v = 0
     for (let b = 0; b < this.bounds.length - 1; b++) {
       const lo = this.bounds[b]
       const hi = this.bounds[b + 1]
+      // faceted down the pad too: one flat normal per facet of this band
+      const fr = this.facetRows
+      if (fr) {
+        const Q = this.facetN.length / 3
+        for (let q = 0; q < Q; q++) {
+          const i0 = q * fr
+          const i1 = Math.min((q + 1) * fr, NV - 1)
+          const a0 = (i0 * NU + lo) * C
+          const a1 = (i0 * NU + hi) * C
+          const b0 = (i1 * NU + lo) * C
+          const b1 = (i1 * NU + hi) * C
+          _a.set(
+            base[b0] + base[b1] - base[a0] - base[a1],
+            base[b0 + 1] + base[b1 + 1] - base[a0 + 1] - base[a1 + 1],
+            base[b0 + 2] + base[b1 + 2] - base[a0 + 2] - base[a1 + 2],
+          )
+          _b.set(
+            base[a1] - base[a0] + base[b1] - base[b0],
+            base[a1 + 1] - base[a0 + 1] + base[b1 + 1] - base[b0 + 1],
+            base[a1 + 2] - base[a0 + 2] + base[b1 + 2] - base[b0 + 2],
+          )
+          _c.crossVectors(_a, _b).normalize()
+          this.facetN[q * 3] = _c.x
+          this.facetN[q * 3 + 1] = _c.y
+          this.facetN[q * 3 + 2] = _c.z
+        }
+      }
       for (let i = 0; i < NV; i++) {
-        if (this.facet) {
+        if (this.facet && fr) {
+          // inside a facet its own plane; on the row where two facets meet, the bevel between them
+          const Q = this.facetN.length / 3
+          const q = Math.min(Math.floor(i / fr), Q - 1)
+          const fN = this.facetN
+          _c.set(fN[q * 3], fN[q * 3 + 1], fN[q * 3 + 2])
+          if (i % fr === 0 && q > 0 && i < NV - 1) {
+            _c.x += fN[(q - 1) * 3]
+            _c.y += fN[(q - 1) * 3 + 1]
+            _c.z += fN[(q - 1) * 3 + 2]
+            _c.normalize()
+          }
+        } else if (this.facet) {
           const l = (i * NU + lo) * C
           const r = (i * NU + hi) * C
           const ul = (Math.max(i - 1, 0) * NU + lo) * C

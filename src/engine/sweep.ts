@@ -1,5 +1,6 @@
 import { BufferAttribute, BufferGeometry, CatmullRomCurve3, Sphere, Vector3 } from 'three'
 import { Skin } from './skin'
+import { Solid } from './solid'
 import type { Form, FrameGetter, SectionName, SweepDef } from './types'
 
 type UV = [number, number]
@@ -72,6 +73,16 @@ const SECTIONS: Record<SectionName, UV[]> = {
 }
 
 const BANDS = new Set<SectionName>(['sheet', 'sheet7', 'shell'])
+
+/*
+ * Muscles are faceted both ways. Across, every side of the section is a plane with a
+ * crisp inked edge. Along the length, the block is cut into flat facets - this many per
+ * span between two stations - and where two facets meet the crease is bevelled, so a
+ * muscle can follow its curve in finer steps and still read as carved planes.
+ */
+export const MUSCLE_FACETS = 2
+/** How much of a facet's length each bevel takes, at either end of the facet. */
+export const FACET_BEVEL = 0.16
 
 /**
  * Round off a cross-section for the smooth model: each side is split into
@@ -158,6 +169,16 @@ export class Sweep implements Form {
   /** Flat normal of every side strip, kept so the smooth model can blend neighbours. */
   private readonly stripN: Float32Array
   private readonly smooth: boolean
+  /** Facets per span along the length (0 = smooth along it). */
+  private readonly F: number
+  /**
+   * With facets: the rings the surface is actually built from - every ring between two
+   * facets is split in two, a bevel apart (see `FACET_BEVEL`). Without: the rings themselves.
+   */
+  private readonly grings: Float32Array
+  private readonly gcentroids: Float32Array
+  /** Vertices before the caps. */
+  private readonly stripVerts: number
   private readonly labelRing: number
   private restLen = 0
 
@@ -168,7 +189,9 @@ export class Sweep implements Form {
     this.sec = smooth ? rounded(base) : base
     const K = (this.K = this.sec.length)
     const n = (this.n = def.path.length)
-    const seg = (this.seg = def.seg ?? 3)
+    const F = (this.F = smooth ? 0 : (def.facets ?? (def.kind === 'muscle' ? MUSCLE_FACETS : 0)))
+    // with facets, a ring per facet joint; without, `seg` rings per span for a smooth curve
+    const seg = (this.seg = F || (def.seg ?? 3))
     const R = (this.R = (n - 1) * seg + 1)
 
     this.ctrl = def.path.map(() => new Vector3())
@@ -184,7 +207,20 @@ export class Sweep implements Form {
     this.rings = new Float32Array(R * K * 3)
     this.centroids = new Float32Array(R * 3)
 
-    const stripVerts = R * K * 2
+    // the rings the surface is built from, and where each one sits along the path (in stations)
+    const G = F && R > 2 ? 2 * R - 2 : R
+    this.grings = G === R ? this.rings : new Float32Array(G * K * 3)
+    this.gcentroids = G === R ? this.centroids : new Float32Array(G * 3)
+    const gAt = (g: number) => {
+      if (G === R) return g / seg
+      if (g === 0) return 0
+      if (g === G - 1) return (R - 1) / seg
+      const i = (g + 1) >> 1
+      return (i + (g % 2 === 1 ? -FACET_BEVEL : FACET_BEVEL)) / seg
+    }
+
+    // faceted: every facet of every side is its own flat quad; smooth: rings share vertices
+    const stripVerts = (this.stripVerts = F ? (G - 1) * K * 4 : R * K * 2)
     const capVerts = 2 * (K + 1)
     const V = stripVerts + capVerts
     this.pos = new Float32Array(V * 3)
@@ -194,19 +230,31 @@ export class Sweep implements Form {
     const coord = new Float32Array(V * 2)
     const index: number[] = []
 
-    for (let i = 0; i < R; i++) {
-      for (let k = 0; k < K; k++) {
-        const v = (i * K + k) * 2
-        coord[v * 2] = i / seg
-        coord[v * 2 + 1] = 0
-        coord[(v + 1) * 2] = i / seg
-        coord[(v + 1) * 2 + 1] = 1
-        if (i < R - 1) {
-          const a = v
-          const b = v + 1
-          const c = v + K * 2 + 1
-          const d = v + K * 2
-          index.push(a, b, c, a, c, d)
+    // coord: x = how far along (in stations - the guide rings sit on whole numbers, which
+    // with facets is the middle of a bevel), y = across the strip (its two edges are inked)
+    if (F) {
+      for (let b = 0; b < G - 1; b++) {
+        for (let k = 0; k < K; k++) {
+          const v = (b * K + k) * 4
+          coord.set([gAt(b), 0, gAt(b), 1, gAt(b + 1), 1, gAt(b + 1), 0], v * 2)
+          index.push(v, v + 1, v + 2, v, v + 2, v + 3)
+        }
+      }
+    } else {
+      for (let i = 0; i < R; i++) {
+        for (let k = 0; k < K; k++) {
+          const v = (i * K + k) * 2
+          coord[v * 2] = i / seg
+          coord[v * 2 + 1] = 0
+          coord[(v + 1) * 2] = i / seg
+          coord[(v + 1) * 2 + 1] = 1
+          if (i < R - 1) {
+            const a = v
+            const b = v + 1
+            const c = v + K * 2 + 1
+            const d = v + K * 2
+            index.push(a, b, c, a, c, d)
+          }
         }
       }
     }
@@ -399,7 +447,61 @@ export class Sweep implements Form {
       }
     }
 
-    // side strips: each strip gets its own flat-across / smooth-along normal
+    if (this.F) this.facetSurface()
+    else this.smoothSurface()
+
+
+    // end caps
+    const stripVerts = this.stripVerts
+    for (let cap = 0; cap < 2; cap++) {
+      const i = cap === 0 ? 0 : R - 1
+      const sign = cap === 0 ? -1 : 1
+      const T = tangents[i]
+      let v = (stripVerts + cap * (K + 1)) * 3
+      _t.set(centroids[i * 3], centroids[i * 3 + 1], centroids[i * 3 + 2])
+      for (let k = -1; k < K; k++) {
+        const src = (i * K + k) * 3
+        const px = k < 0 ? _t.x : rings[src]
+        const py = k < 0 ? _t.y : rings[src + 1]
+        const pz = k < 0 ? _t.z : rings[src + 2]
+        pos[v] = px
+        pos[v + 1] = py
+        pos[v + 2] = pz
+        nor[v] = T.x * sign
+        nor[v + 1] = T.y * sign
+        nor[v + 2] = T.z * sign
+        let ox = px - _t.x + T.x * sign * 0.02
+        let oy = py - _t.y + T.y * sign * 0.02
+        let oz = pz - _t.z + T.z * sign * 0.02
+        const ol = Math.hypot(ox, oy, oz) || 1
+        ox /= ol
+        oy /= ol
+        oz /= ol
+        onor[v] = ox
+        onor[v + 1] = oy
+        onor[v + 2] = oz
+        v += 3
+      }
+    }
+
+    const g = this.geometry
+    g.attributes.position.needsUpdate = true
+    g.attributes.normal.needsUpdate = true
+    g.attributes.onormal.needsUpdate = true
+
+    // cheap bounding sphere so picking and culling keep working
+    const sphere = g.boundingSphere as Sphere
+    sphere.center.set(0, 0, 0)
+    for (let i = 0; i < R; i++) sphere.center.add(centers[i])
+    sphere.center.multiplyScalar(1 / R)
+    let rad = 0
+    for (let i = 0; i < R; i++) rad = Math.max(rad, sphere.center.distanceTo(centers[i]))
+    sphere.radius = rad + maxR
+  }
+
+  /** Smooth along the length: one strip per side, flat across it, its normal bending along it. */
+  private smoothSurface() {
+    const { K, R, rings, centroids, tangents, pos, nor, onor } = this
     for (let i = 0; i < R; i++) {
       const ip = Math.min(i + 1, R - 1)
       const im = Math.max(i - 1, 0)
@@ -482,53 +584,78 @@ export class Sweep implements Form {
         }
       }
     }
+  }
 
-    // end caps
-    const stripVerts = R * K * 2
-    for (let cap = 0; cap < 2; cap++) {
-      const i = cap === 0 ? 0 : R - 1
-      const sign = cap === 0 ? -1 : 1
-      const T = tangents[i]
-      let v = (stripVerts + cap * (K + 1)) * 3
-      _t.set(centroids[i * 3], centroids[i * 3 + 1], centroids[i * 3 + 2])
-      for (let k = -1; k < K; k++) {
-        const src = (i * K + k) * 3
-        const px = k < 0 ? _t.x : rings[src]
-        const py = k < 0 ? _t.y : rings[src + 1]
-        const pz = k < 0 ? _t.z : rings[src + 2]
-        pos[v] = px
-        pos[v + 1] = py
-        pos[v + 2] = pz
-        nor[v] = T.x * sign
-        nor[v + 1] = T.y * sign
-        nor[v + 2] = T.z * sign
-        let ox = px - _t.x + T.x * sign * 0.02
-        let oy = py - _t.y + T.y * sign * 0.02
-        let oz = pz - _t.z + T.z * sign * 0.02
-        const ol = Math.hypot(ox, oy, oz) || 1
-        ox /= ol
-        oy /= ol
-        oz /= ol
-        onor[v] = ox
-        onor[v + 1] = oy
-        onor[v + 2] = oz
-        v += 3
+  /**
+   * Faceted along the length: build the surface rings (each joint between two facets
+   * split in two, a bevel apart), then give every facet of every side - and every
+   * bevel - its own flat quad.
+   */
+  private facetSurface() {
+    const { K, R, rings, centroids, grings, gcentroids, tangents, pos, nor, onor } = this
+    const G = grings.length / (K * 3)
+    // surface rings: the ends as they are, every joint between them cut back towards both neighbours
+    const cut = (dst: Float32Array, src: Float32Array, size: number) => {
+      for (let g = 0; g < G; g++) {
+        const i = g === 0 ? 0 : g === G - 1 ? R - 1 : (g + 1) >> 1
+        const j = g === 0 || g === G - 1 ? i : g % 2 === 1 ? i - 1 : i + 1
+        const t = g === 0 || g === G - 1 ? 0 : FACET_BEVEL
+        for (let c = 0; c < size; c++) dst[g * size + c] = src[i * size + c] + (src[j * size + c] - src[i * size + c]) * t
       }
     }
-
-    const g = this.geometry
-    g.attributes.position.needsUpdate = true
-    g.attributes.normal.needsUpdate = true
-    g.attributes.onormal.needsUpdate = true
-
-    // cheap bounding sphere so picking and culling keep working
-    const sphere = g.boundingSphere as Sphere
-    sphere.center.set(0, 0, 0)
-    for (let i = 0; i < R; i++) sphere.center.add(centers[i])
-    sphere.center.multiplyScalar(1 / R)
-    let rad = 0
-    for (let i = 0; i < R; i++) rad = Math.max(rad, sphere.center.distanceTo(centers[i]))
-    sphere.radius = rad + maxR
+    if (G !== R) {
+      cut(grings, rings, K * 3)
+      cut(gcentroids, centroids, 3)
+    }
+    for (let b = 0; b < G - 1; b++) {
+      for (let k = 0; k < K; k++) {
+        const k2 = (k + 1) % K
+        const q = [(b * K + k) * 3, (b * K + k2) * 3, ((b + 1) * K + k2) * 3, ((b + 1) * K + k) * 3]
+        // across the quad and along it, each averaged over its two edges
+        _a.set(
+          grings[q[1]] - grings[q[0]] + grings[q[2]] - grings[q[3]],
+          grings[q[1] + 1] - grings[q[0] + 1] + grings[q[2] + 1] - grings[q[3] + 1],
+          grings[q[1] + 2] - grings[q[0] + 2] + grings[q[2] + 2] - grings[q[3] + 2],
+        )
+        _b.set(
+          grings[q[3]] + grings[q[2]] - grings[q[0]] - grings[q[1]],
+          grings[q[3] + 1] + grings[q[2] + 1] - grings[q[0] + 1] - grings[q[1] + 1],
+          grings[q[3] + 2] + grings[q[2] + 2] - grings[q[0] + 2] - grings[q[1] + 2],
+        )
+        _c.crossVectors(_a, _b)
+        if (_c.lengthSq() < 1e-14) _c.crossVectors(_a, tangents[Math.min((b + 1) >> 1, R - 1)])
+        _c.normalize()
+        const v = (b * K + k) * 4 * 3
+        for (let e = 0; e < 4; e++) {
+          const src = q[e]
+          const ring = e < 2 ? b : b + 1
+          const dst = v + e * 3
+          pos[dst] = grings[src]
+          pos[dst + 1] = grings[src + 1]
+          pos[dst + 2] = grings[src + 2]
+          nor[dst] = _c.x
+          nor[dst + 1] = _c.y
+          nor[dst + 2] = _c.z
+          // outline direction: straight out from the middle of the ring
+          let ox = grings[src] - gcentroids[ring * 3]
+          let oy = grings[src + 1] - gcentroids[ring * 3 + 1]
+          let oz = grings[src + 2] - gcentroids[ring * 3 + 2]
+          const ol = Math.hypot(ox, oy, oz)
+          if (ol < 1e-6) {
+            ox = _c.x
+            oy = _c.y
+            oz = _c.z
+          } else {
+            ox /= ol
+            oy /= ol
+            oz /= ol
+          }
+          onor[dst] = ox
+          onor[dst + 1] = oy
+          onor[dst + 2] = oz
+        }
+      }
+    }
   }
 
   dispose() {
@@ -538,5 +665,10 @@ export class Sweep implements Form {
 
 /** Build the right kind of form for a definition. */
 export function makeForm(def: SweepDef, smooth = false): Form {
-  return def.skin ? new Skin(def, def.skin, smooth) : new Sweep(def, smooth)
+  if (def.solid) return new Solid(def, def.solid)
+  if (def.skin) {
+    const facets = smooth ? 0 : (def.facets ?? (def.kind === 'muscle' ? MUSCLE_FACETS : 0))
+    return new Skin(def, def.skin, smooth, facets)
+  }
+  return new Sweep(def, smooth)
 }

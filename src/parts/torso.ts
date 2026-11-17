@@ -16,7 +16,7 @@ import {
 } from '../engine/frames'
 import type { GroupDef, LessonDef, PathPoint, RigDef, SkinDef, SkinPoint, SweepDef, Vec3 } from '../engine/types'
 import { resize } from './body'
-import { pelvisBlocks, pelvisBowl } from './pelvis'
+import { pelvisBlocks, pelvisSolid } from './pelvis'
 
 /*
  * Torso, facing +Z.   +X = the figure's left   +Y = up
@@ -177,8 +177,8 @@ const FLANK: [number, number, number, number][] = [
   [68, 3.42, 84, 0.0],
   [50, 3.36, 64, 0.38],
   [33, 3.28, 33, 0.81],
-  [15, 3.2, 13, 1.26],
-  [-5, 3.12, -6, 1.5],
+  [15, 3.2, 13, 1.19],
+  [-5, 3.12, -6, 1.46],
   [-26, 3.05, -28, 1.5],
   [-46, 3.0, -50, 1.5],
   // far enough round to tuck under the spine columns, so the back never shows a gap
@@ -327,7 +327,8 @@ const left: SweepDef[] = [
       P('w@0.5', 0.31, 1.78, 1.0, 0.29, 0.12, { n: FRONT }),
       P('w@0.25', 0.28, 1.14, 0.95, 0.26, 0.1, { n: FRONT }),
       P('pelvis', 0.2, 0.42, 0.84, 0.2, 0.08, { n: [0, -0.2, 1] }),
-      P('pelvis', 0.1, -0.12, 0.64, 0.1, 0.06, { n: [0, -0.4, 0.9] }),
+      // ends on the pubic crest, on top of the joint between the two hip bones
+      P('pelvis', 0.11, 0.02, 0.58, 0.1, 0.05, { n: [0, -0.2, 1] }),
     ],
     label: 2,
   },
@@ -499,7 +500,7 @@ const SCALED = new Set(['scapula', 'sternum', 'head'])
 const FEMALE_FORMS: Record<string, Partial<SweepDef>> = {
   obliques: { skin: flank(TRUNK_FEMALE) },
   // a narrower rim, a wider underside: female hips are widest low down, at the top of the thigh
-  pelvis: { path: pelvisBowl(RIM_X, HIPS_X) },
+  pelvis: { solid: pelvisSolid(RIM_X, HIPS_X) },
   ribcage: { path: ribcage(RIBS_X, 0.93) },
 }
 

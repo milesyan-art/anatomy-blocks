@@ -1,6 +1,7 @@
 import { Matrix4 } from 'three'
 import { DEG, P, makeFrames, mul, rotX, translate } from '../engine/frames'
 import type { LessonDef, PathPoint, RigDef, SweepDef } from '../engine/types'
+import { BALL, FOOT, RAYS, footBones } from './legBones'
 
 /*
  * LEFT foot.   +X = outside (little toe)   +Y = up   +Z = toes
@@ -12,7 +13,6 @@ import type { LessonDef, PathPoint, RigDef, SweepDef } from '../engine/types'
  *   toes   turn at the ball of the foot
  */
 
-const BALL: [number, number, number] = [0, -0.6, 1.22]
 const IDENTITY = new Matrix4()
 
 const FRONT: PathPoint['n'] = [0, 0, 1]
@@ -37,69 +37,30 @@ const TOES: Toe[] = [
   { id: 'little', x: 0.37, z: -0.23, len: 0.3, w: 0.07 },
 ]
 
-const toeBlocks: SweepDef[] = TOES.map((t) => ({
-  id: `toe-${t.id}`,
-  group: 'bone',
-  kind: 'bone',
-  section: 'box',
-  seg: 1,
-  path: [
-    P('toes', t.x, t.id === 'big' ? 0 : -0.02, t.z - 0.05, t.w, t.id === 'big' ? 0.11 : 0.08, { n: UP }),
-    P('toes', t.x * 1.03, -0.03, t.z + t.len, t.w * 0.85, t.id === 'big' ? 0.075 : 0.055, { n: UP }),
-  ],
-}))
-
-const toeTendons: SweepDef[] = TOES.map((t) => ({
-  id: `tendon-${t.id}`,
-  group: 'tendons',
-  kind: 'tendon',
-  path: [
-    P('shin', t.x * 0.25, 0.55, 0.2, 0.03, 0.025, { n: FRONT }),
-    P('foot', t.x * 0.4, -0.03, 0.24, 0.03, 0.025, { n: [0, 0.75, 0.66] }),
-    P('foot', t.x * 0.75 + 0.03, -0.22, 0.66, 0.03, 0.025, { n: UP }),
-    P('foot', t.x + 0.05, -0.44, 1.14, 0.03, 0.025, { n: UP }),
-    P('toes', t.x, t.id === 'big' ? 0.11 : 0.06, t.z + 0.16, 0.025, 0.02, { n: UP }),
-  ],
-  label: t.id === 'two' ? 2 : undefined,
-}))
+/*
+ * The toe tendons lie on the bones: over the front of the ankle, along the top of each
+ * long bone of the foot, over its head and onto the toe.
+ */
+const toeTendons: SweepDef[] = TOES.map((t, i) => {
+  const ray = RAYS[i]
+  return {
+    id: `tendon-${t.id}`,
+    group: 'tendons',
+    kind: 'tendon',
+    path: [
+      P('shin', t.x * 0.25, 0.55, 0.2, 0.03, 0.025, { n: FRONT }),
+      P('foot', t.x * 0.4, -0.1, 0.22, 0.03, 0.025, { n: [0, 0.75, 0.66] }),
+      P('foot', ray.base[0], ray.base[1] + ray.rb + 0.03, ray.base[2] + 0.05, 0.03, 0.025, { n: UP }),
+      P('foot', ray.head[0], ray.head[1] + ray.rh + 0.025, ray.head[2] - 0.05, 0.03, 0.025, { n: UP }),
+      P('toes', t.x, t.id === 'big' ? 0.11 : 0.06, t.z + 0.16, 0.025, 0.02, { n: UP }),
+    ],
+    label: t.id === 'two' ? 2 : undefined,
+  }
+})
 
 const sweeps: SweepDef[] = [
-  // ───────────── base blocks ─────────────
-  {
-    id: 'shin',
-    group: 'bone',
-    kind: 'bone',
-    section: 'hex',
-    seg: 2,
-    path: [
-      P('shin', 0, 2.3, 0, 0.25, 0.27, { n: FRONT }),
-      P('shin', 0, 1.2, 0, 0.2, 0.22, { n: FRONT }),
-      P('shin', 0, 0.3, 0, 0.17, 0.19, { n: FRONT }),
-    ],
-  },
-  {
-    // inner ankle bump high, outer bump low and further back
-    id: 'ankle-bumps',
-    group: 'bone',
-    kind: 'bone',
-    section: 'crate',
-    seg: 1,
-    path: [P('shin', -0.28, 0.05, 0.02, 0.13, 0.11, { n: FRONT }), P('shin', 0.28, -0.11, -0.08, 0.12, 0.1, { n: FRONT })],
-  },
-  {
-    id: 'foot-block',
-    group: 'bone',
-    kind: 'bone',
-    section: 'crate',
-    seg: 2,
-    path: [
-      P('foot', 0, -0.45, -0.62, 0.22, 0.25, { n: UP }),
-      P('foot', 0, -0.3, -0.1, 0.27, 0.3, { n: UP }),
-      P('foot', 0.04, -0.42, 0.6, 0.36, 0.2, { n: UP }),
-      P('foot', 0.06, -0.57, 1.24, 0.45, 0.12, { n: UP }),
-    ],
-  },
-  ...toeBlocks,
+  // the bottom of the shin, and the ankle, foot and toe bones (see legBones.ts)
+  ...footBones(),
 
   // ───────────── the soft parts ─────────────
   {
@@ -110,7 +71,8 @@ const sweeps: SweepDef[] = [
     path: [
       P('shin', 0, 2.1, -0.28, 0.22, 0.06, { n: BACK }),
       P('shin', 0, 0.75, -0.22, 0.09, 0.06, { n: BACK }),
-      P('foot', 0, -0.22, -0.86, 0.11, 0.05, { n: BACK }),
+      // onto the back of the heel bone
+      P('foot', FOOT.heel[0], FOOT.heel[1] + 0.06, FOOT.heel[2], 0.11, 0.05, { n: BACK }),
     ],
     label: 1,
   },
@@ -163,8 +125,9 @@ const sweeps: SweepDef[] = [
     group: 'top',
     kind: 'muscle',
     path: [
-      P('foot', 0.16, -0.06, 0.12, 0.08, 0.04, { n: [0.4, 0.9, 0.1] }),
-      P('foot', 0.23, -0.2, 0.5, 0.13, 0.07, { n: [0.4, 0.9, 0.1] }),
+      // from the top of the heel bone, in the hollow in front of the outer ankle
+      P('foot', ...FOOT.sinusTarsi, 0.08, 0.04, { n: [0.4, 0.9, 0.1] }),
+      P('foot', 0.23, -0.28, 0.5, 0.13, 0.07, { n: [0.4, 0.9, 0.1] }),
       P('foot', 0.26, -0.4, 0.95, 0.07, 0.03, { n: [0.3, 0.95, 0] }),
     ],
     label: 1,
