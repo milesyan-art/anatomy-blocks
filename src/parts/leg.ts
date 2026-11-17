@@ -23,6 +23,8 @@ import { PELVIS, bladePoint, crestHeight, pelvisBlocks } from './pelvis'
 /** How far the hip joint sits from the body's midline. */
 const HIP_X = 0.85
 const IDENTITY = new Matrix4()
+/** How many degrees the knee bends for each degree the leg is raised. */
+const KNEE_PER_HIP = 1
 
 /** A pelvis landmark (see pelvis.ts) moved into leg space. */
 const onPelvis = (p: Vec3): Vec3 => [p[0] - HIP_X, p[1], p[2]]
@@ -333,7 +335,7 @@ export const legRig: RigDef = {
   presets: [
     { label: 'Standing', pose: { hip: 0, knee: 5, ankle: 0 } },
     { label: 'Tiptoe', pose: { hip: 0, knee: 0, ankle: 42 } },
-    { label: 'Leg raised', pose: { hip: 75, knee: 0, ankle: 10 } },
+    { label: 'Leg raised', pose: { hip: 80, knee: 85, ankle: 15 } },
     { label: 'Sitting', pose: { hip: 90, knee: 90, ankle: 0 } },
     { label: 'Deep bend', pose: { hip: 110, knee: 132, ankle: -15 } },
   ],
@@ -431,6 +433,13 @@ export const legRig: RigDef = {
   ],
   sweeps,
   drives: (pose) => ({ hip: pose.hip / 110, knee: pose.knee / 135, ankle: pose.ankle / 45 }),
+  // a raised leg bends at the knee as it comes up, and straightens as it goes down;
+  // the knee slider moves along, so it can still be set on its own afterwards
+  couple: (pose, id, value) => {
+    if (id !== 'hip') return { ...pose, [id]: value }
+    const knee = Math.min(135, Math.max(0, pose.knee + (value - pose.hip) * KNEE_PER_HIP))
+    return { ...pose, hip: value, knee }
+  },
   frames: (pose) => {
     // the thigh swings forward about the centre of the ball in the hip socket
     const hip = (k: number) => mul(translate(...FEMUR.head), rotX(-pose.hip * DEG * k), translate(-FEMUR.head[0], -FEMUR.head[1], -FEMUR.head[2]))

@@ -170,6 +170,12 @@ export interface RigDef {
   /** Normalised 0..1 values that key shapes can follow. */
   drives: (pose: Pose) => Record<string, number>
   /**
+   * Sliders that move together: called when the control `id` is dragged to `value`,
+   * returns the whole new pose (e.g. raising the leg also bends the knee, as people do).
+   * Left out = only that slider changes.
+   */
+  couple?: (pose: Pose, id: string, value: number) => Pose
+  /**
    * Single limbs only: where the body's midline is (x) in this rig's space.
    * Limbs are modelled as the LEFT one; the right one is the same rig mirrored across this line.
    */
