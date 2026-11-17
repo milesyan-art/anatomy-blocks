@@ -254,6 +254,48 @@ export function brick(c: Vec3, b: Vec3, rad: number, up: Vec3 = [0, 1, 0], front
   }
 }
 
+/** A flat plate: the triangle a, b, c thickened by r all round (exact distance, after Inigo Quilez). */
+export function slab(a: Vec3, b: Vec3, c: Vec3, r: number): Shape {
+  const sub = (p: Vec3, q: Vec3): Vec3 => [p[0] - q[0], p[1] - q[1], p[2] - q[2]]
+  const dot = (p: Vec3, q: Vec3) => p[0] * q[0] + p[1] * q[1] + p[2] * q[2]
+  const ba = sub(b, a)
+  const cb = sub(c, b)
+  const ac = sub(a, c)
+  const nor = cross(ba, ac)
+  const e0 = cross(ba, nor)
+  const e1 = cross(cb, nor)
+  const e2 = cross(ac, nor)
+  const nn = dot(nor, nor)
+  const lo: Vec3 = [Math.min(a[0], b[0], c[0]) - r, Math.min(a[1], b[1], c[1]) - r, Math.min(a[2], b[2], c[2]) - r]
+  const hi: Vec3 = [Math.max(a[0], b[0], c[0]) + r, Math.max(a[1], b[1], c[1]) + r, Math.max(a[2], b[2], c[2]) + r]
+  const edge = (e: Vec3, o: Vec3, x: number, y: number, z: number) => {
+    const px = x - o[0]
+    const py = y - o[1]
+    const pz = z - o[2]
+    const t = Math.min(1, Math.max(0, (e[0] * px + e[1] * py + e[2] * pz) / dot(e, e)))
+    const dx = e[0] * t - px
+    const dy = e[1] * t - py
+    const dz = e[2] * t - pz
+    return dx * dx + dy * dy + dz * dz
+  }
+  return {
+    lo,
+    hi,
+    f: (x, y, z) => {
+      const s0 = Math.sign(e0[0] * (x - a[0]) + e0[1] * (y - a[1]) + e0[2] * (z - a[2]))
+      const s1 = Math.sign(e1[0] * (x - b[0]) + e1[1] * (y - b[1]) + e1[2] * (z - b[2]))
+      const s2 = Math.sign(e2[0] * (x - c[0]) + e2[1] * (y - c[1]) + e2[2] * (z - c[2]))
+      let d2: number
+      if (s0 + s1 + s2 < 2) d2 = Math.min(edge(ba, a, x, y, z), edge(cb, b, x, y, z), edge(ac, c, x, y, z))
+      else {
+        const h = nor[0] * (x - a[0]) + nor[1] * (y - a[1]) + nor[2] * (z - a[2])
+        d2 = (h * h) / nn
+      }
+      return Math.sqrt(d2) - r
+    },
+  }
+}
+
 /** A ring (torus) round `c`, in the plane square to `n`: big radius R, thickness r. */
 export function ring(c: Vec3, n: Vec3, R: number, r: number): Shape {
   const nn = unit(n)

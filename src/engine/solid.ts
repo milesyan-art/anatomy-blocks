@@ -1,5 +1,5 @@
 import { BufferAttribute, BufferGeometry, Matrix4, Sphere, Vector3 } from 'three'
-import type { Form, FrameGetter, SolidDef, SweepDef } from './types'
+import type { Form, FrameGetter, SolidDef, SolidMesh, SweepDef } from './types'
 
 const _m = new Matrix4()
 const _v = new Vector3()
@@ -31,14 +31,28 @@ export class Solid implements Form {
     this.solid = solid
     const mesh = solid.mesh()
     const [ox, oy, oz] = solid.offset ?? [0, 0, 0]
+    const [sx, sy, sz] = solid.scale ?? [1, 1, 1]
     const V = mesh.position.length / 3
     this.base = new Float32Array(mesh.position)
     for (let v = 0; v < V; v++) {
-      this.base[v * 3] += ox
-      this.base[v * 3 + 1] += oy
-      this.base[v * 3 + 2] += oz
+      this.base[v * 3] = this.base[v * 3] * sx + ox
+      this.base[v * 3 + 1] = this.base[v * 3 + 1] * sy + oy
+      this.base[v * 3 + 2] = this.base[v * 3 + 2] * sz + oz
     }
     this.baseN = mesh.normal
+    if (solid.scale) {
+      // a stretched surface's normals lean the other way
+      this.baseN = new Float32Array(mesh.normal)
+      for (let v = 0; v < V; v++) {
+        const nx = this.baseN[v * 3] / sx
+        const ny = this.baseN[v * 3 + 1] / sy
+        const nz = this.baseN[v * 3 + 2] / sz
+        const l = Math.hypot(nx, ny, nz) || 1
+        this.baseN[v * 3] = nx / l
+        this.baseN[v * 3 + 1] = ny / l
+        this.baseN[v * 3 + 2] = nz / l
+      }
+    }
     this.pos = new Float32Array(V * 3)
     this.nor = new Float32Array(V * 3)
 
@@ -110,4 +124,40 @@ export class Solid implements Form {
   dispose() {
     this.geometry.dispose()
   }
+}
+
+const mirrors = new WeakMap<() => SolidMesh, () => SolidMesh>()
+
+/**
+ * The same solid on the other side of the body (x -> -x): the mesh is mirrored once
+ * (and its triangles turned round so they still face out), the frame is renamed.
+ */
+export function mirrorSolid(solid: SolidDef, mapFrame: (f: string) => string): SolidDef {
+  let mesh = mirrors.get(solid.mesh)
+  if (!mesh) {
+    let cached: SolidMesh | null = null
+    const src = solid.mesh
+    mesh = () => {
+      if (!cached) {
+        const m = src()
+        const position = new Float32Array(m.position)
+        const normal = new Float32Array(m.normal)
+        for (let i = 0; i < position.length; i += 3) {
+          position[i] = -position[i]
+          normal[i] = -normal[i]
+        }
+        const index = new Uint32Array(m.index)
+        for (let i = 0; i < index.length; i += 3) {
+          const t = index[i + 1]
+          index[i + 1] = index[i + 2]
+          index[i + 2] = t
+        }
+        cached = { position, normal, index }
+      }
+      return cached
+    }
+    mirrors.set(solid.mesh, mesh)
+  }
+  const o = solid.offset
+  return { ...solid, frame: mapFrame(solid.frame), mesh, offset: o ? [-o[0], o[1], o[2]] : undefined }
 }

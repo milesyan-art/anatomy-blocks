@@ -3,7 +3,6 @@ import {
   DEG,
   P,
   arc,
-  cage,
   makeFrames,
   mirrorPoint,
   mirrorSkin,
@@ -15,8 +14,11 @@ import {
   translate,
 } from '../engine/frames'
 import type { GroupDef, LessonDef, PathPoint, RigDef, SkinDef, SkinPoint, SweepDef, Vec3 } from '../engine/types'
+import { mirrorSolid } from '../engine/solid'
 import { resize } from './body'
+import { humerusSolid } from './armBones'
 import { pelvisBlocks, pelvisSolid } from './pelvis'
+import { SHOULDER, clavicleSolid, lumbarSolids, ribCageSolid, scapulaSolid } from './torsoBones'
 
 /*
  * Torso, facing +Z.   +X = the figure's left   +Y = up
@@ -39,7 +41,6 @@ import { pelvisBlocks, pelvisSolid } from './pelvis'
  */
 
 const WAIST: [number, number, number] = [0, 1.6, -0.35]
-const SHOULDER: [number, number, number] = [1.85, 4.55, -0.05]
 /** The collarbone's inner end, where it meets the breastbone. */
 const COLLAR_ROOT: [number, number, number] = [0.13, 4.92, 0.62]
 /** The tip of the shoulder (acromion), where the collarbone holds the shoulder blade. */
@@ -75,53 +76,8 @@ const armsUp = (p: Vec3, w: number, h: number) => ({ alt: { drive: 'arms', p, w,
 
 const FRONT: PathPoint['n'] = [0, 0, 1]
 const BACK: PathPoint['n'] = [0, 0, -1]
-const UP: PathPoint['n'] = [0, 1, 0]
 const OUT: PathPoint['n'] = [1, 0, 0]
 
-/*
- * The spine between the rib cage and the hips, as one bendy block - not a stack of
- * vertebrae. Each station rides its own share of the waist turn, so it curves with a bend.
- */
-const spine: SweepDef = {
-  id: 'spine',
-  group: 'bone',
-  kind: 'bone',
-  section: 'crate',
-  path: [
-    P('ribs', 0, 3.05, -0.62, 0.22, 0.24, { n: FRONT }),
-    P('w@0.8', 0, 2.5, -0.58, 0.23, 0.24, { n: FRONT }),
-    P('w@0.5', 0, 1.95, -0.52, 0.25, 0.24, { n: FRONT }),
-    P('w@0.2', 0, 1.45, -0.52, 0.26, 0.24, { n: FRONT }),
-    P('pelvis', 0, 1.0, -0.56, 0.27, 0.22, { n: FRONT }),
-  ],
-}
-
-/*
- * The rib cage in one piece: a hollow egg, closed round the top, that opens at the
- * front below the breastbone into the arch of the lower ribs. The back stays nearly
- * upright and the front does the sloping - as on the real cage - which also keeps
- * every ring level.
- *   y, back z, outer width, outer depth (half sizes), half-width of the front gap in degrees
- */
-const CAGE: [number, number, number, number, number][] = [
-  [5.16, -0.8, 0.58, 0.42, 0],
-  [4.8, -0.86, 1.12, 0.78, 0],
-  [4.15, -0.94, 1.34, 0.94, 0],
-  [3.6, -0.97, 1.38, 0.98, 0],
-  [3.25, -0.97, 1.39, 0.97, 2.5],
-  [2.85, -0.96, 1.36, 0.94, 13.6],
-  [2.45, -0.94, 1.24, 0.89, 31.7],
-  [2.15, -0.9, 1.12, 0.82, 50],
-  [1.98, -0.87, 1.0, 0.75, 65.6],
-]
-
-/** The rib cage's stations, narrowed by kx and made shallower by kz. */
-function ribcage(kx: number, kz: number): PathPoint[] {
-  // a slightly boxy oval: broad, flattish back and sides, like the real cage
-  return CAGE.map(([y, back, w, d, open]) =>
-    cage('ribs', y, (back + d) * kz, w * kx, d * kz, open, 0.1 * kz, 0.78),
-  )
-}
 
 /*
  * The flank is not swept like the other blocks: it has to hug the ribs, pinch in at
@@ -219,26 +175,10 @@ function flank(trunk: Trunk): SkinDef {
 /** Things that sit on the midline (not mirrored). */
 const middle: SweepDef[] = [
   ...pelvisBlocks(),
-  spine,
-  {
-    id: 'ribcage',
-    group: 'bone',
-    kind: 'bone',
-    section: 'shell',
-    path: ribcage(1, 1),
-  },
-  {
-    id: 'sternum',
-    group: 'bone',
-    kind: 'bone',
-    section: 'box',
-    seg: 2,
-    path: [
-      P('ribs', 0, 4.92, 0.63, 0.24, 0.04, { n: [0, 0.3, 0.95] }),
-      P('ribs', 0, 4.1, 0.93, 0.16, 0.04, { n: [0, 0.2, 0.98] }),
-      P('ribs', 0, 3.4, 1.04, 0.08, 0.04, { n: FRONT }),
-    ],
-  },
+  // the rib cage with the thoracic spine and the breastbone, and the five lumbar
+  // vertebrae below it, each riding its share of the bend (see torsoBones.ts)
+  { id: 'ribcage', group: 'bone', kind: 'bone', path: [], solid: ribCageSolid() },
+  ...lumbarSolids().map(({ id, solid }): SweepDef => ({ id, group: 'bone', kind: 'bone', path: [], solid })),
   {
     id: 'head',
     group: 'head',
@@ -260,58 +200,11 @@ const middle: SweepDef[] = [
 /** The left half. */
 const left: SweepDef[] = [
   // ───────────── bones + props ─────────────
-  {
-    id: 'clavicle',
-    group: 'bone',
-    kind: 'bone',
-    section: 'hex',
-    path: [
-      P('clavL', 0.13, 4.92, 0.62, 0.09, 0.08, { n: UP }),
-      P('clavL', 0.8, 4.98, 0.66, 0.085, 0.075, { n: UP }),
-      P('clavL', 1.42, 5.04, 0.36, 0.08, 0.07, { n: UP }),
-      P('clavL', 1.8, 5.0, 0.0, 0.1, 0.07, { n: UP }),
-    ],
-  },
-  {
-    // a triangle on the back of the ribs: upright inner edge, lower tip, outer corner at the shoulder
-    id: 'scapula',
-    group: 'bone',
-    kind: 'bone',
-    section: 'box',
-    path: [
-      P('scapL', 1.08, 4.72, -0.76, 0.5, 0.045, { n: [0.42, 0, -0.91] }),
-      P('scapL', 1.0, 4.1, -0.86, 0.36, 0.045, { n: [0.36, 0, -0.93] }),
-      P('scapL', 0.86, 3.38, -0.9, 0.06, 0.04, { n: [0.3, 0, -0.95] }),
-    ],
-  },
-  {
-    id: 'scapula-spine',
-    group: 'bone',
-    kind: 'bone',
-    section: 'hex',
-    seg: 2,
-    // the ridge across the shoulder blade, ending in the flat tip (acromion) that meets the collarbone
-    path: [
-      P('scapL', 0.68, 4.52, -0.98, 0.05, 0.06, { n: UP }),
-      P('scapL', 1.3, 4.78, -0.86, 0.07, 0.09, { n: [0, 0.6, -0.8] }),
-      P('scapL', 1.7, 4.94, -0.42, 0.1, 0.08, { n: UP }),
-      P('scapL', 1.9, 4.96, -0.08, 0.14, 0.06, { n: UP }),
-    ],
-  },
-  {
-    id: 'arm',
-    group: 'arm',
-    kind: 'prop',
-    section: 'crate',
-    path: [
-      // the ball of the upper arm sits right under the shoulder tip
-      P('armL', 0, 0.3, 0, 0.18, 0.2, { n: FRONT }),
-      P('armL', 0, 0.04, 0, 0.32, 0.36, { n: FRONT }),
-      P('armL', 0.02, -0.8, 0, 0.35, 0.42, { n: FRONT }),
-      P('armL', 0, -1.8, 0, 0.33, 0.4, { n: FRONT }),
-      P('armL', 0, -2.6, 0, 0.29, 0.33, { n: FRONT }),
-    ],
-  },
+  { id: 'clavicle', group: 'bone', kind: 'bone', path: [], solid: clavicleSolid('clavL') },
+  { id: 'scapula', group: 'bone', kind: 'bone', path: [], solid: scapulaSolid('scapL') },
+  // the upper arm bone (shared with the arm rig, see armBones.ts)
+  { id: 'arm', group: 'bone', kind: 'bone', path: [], solid: humerusSolid('armL') },
+
 
   // ───────────── front ─────────────
   {
@@ -480,6 +373,7 @@ const mirror = (def: SweepDef): SweepDef => ({
   label: undefined,
   path: def.path.map((pt) => mirrorPoint(pt, toRight)),
   skin: def.skin && mirrorSkin(def.skin, toRight),
+  solid: def.solid && mirrorSolid(def.solid, toRight),
 })
 
 /*
@@ -491,7 +385,7 @@ const WAIST_X = 0.78
 const HIPS_X = 1.07
 const RIM_X = 0.93
 /** Pieces whose width is a left-right measure, so it narrows along with the body. */
-const SCALED = new Set(['scapula', 'sternum', 'head'])
+const SCALED = new Set(['head'])
 
 /*
  * Forms that cannot simply be squeezed: the waist is so much narrower than the
@@ -501,12 +395,17 @@ const FEMALE_FORMS: Record<string, Partial<SweepDef>> = {
   obliques: { skin: flank(TRUNK_FEMALE) },
   // a narrower rim, a wider underside: female hips are widest low down, at the top of the thigh
   pelvis: { solid: pelvisSolid(RIM_X, HIPS_X) },
-  ribcage: { path: ribcage(RIBS_X, 0.93) },
 }
 
 function feminize(def: SweepDef): SweepDef {
   const own = FEMALE_FORMS[def.id]
   if (own) return { ...def, ...own }
+  if (def.solid) {
+    // sculpted bones keep their shape and are stretched with the space they sit in
+    const base = def.solid.frame.replace(/@.*/, '')
+    const k: Vec3 | null = base === 'ribs' || base === 'clavL' || base === 'scapL' ? [RIBS_X, 1, 0.93] : base === 'w' ? [WAIST_X, 1, 0.9] : null
+    return k ? { ...def, solid: { ...def.solid, scale: k } } : def
+  }
   const soft = def.kind === 'muscle' || def.kind === 'tendon'
   return {
     ...def,

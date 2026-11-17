@@ -89,6 +89,8 @@ export interface SolidDef {
   mesh: () => SolidMesh
   /** Slides the whole mesh (in frame space), for rigs with a different origin. */
   offset?: Vec3
+  /** Stretches the mesh about the frame's origin before sliding it (e.g. narrower female ribs). */
+  scale?: Vec3
 }
 
 export interface SweepDef {
