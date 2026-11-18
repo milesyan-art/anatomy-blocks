@@ -1,5 +1,5 @@
-import { bar, brick, clip, egg, fuse, mirrored, ring, rod, sculpted, slab, squash, unit } from '../engine/sdf'
-import type { Field, Shape } from '../engine/sdf'
+import { bar, brick, egg, fuse, mirrored, rod, sculpted, slab, squash } from '../engine/sdf'
+import type { Shape } from '../engine/sdf'
 import type { SolidDef, Vec3 } from '../engine/types'
 
 /*
@@ -10,8 +10,6 @@ import type { SolidDef, Vec3 } from '../engine/types'
  *              (frame 'ribs'). The ribs slope down from the spine; the cartilages of the
  *              lower ones climb back up to the breastbone and close the arch under it.
  *   lumbar     five separate vertebrae, each riding its own share of the waist bend
- *   neck       seven vertebrae up into the base of the head (frame 'ribs')
- *   head       a carved mannequin head - planes, no skull (frame 'ribs')
  *   collarbone an S-curved strut (frames 'clavL' / 'clavR')
  *   blade      the shoulder blade: a thin triangle with its ridge (spine), the shelf
  *              over the joint (acromion), the hook in front (coracoid) and the socket
@@ -172,89 +170,6 @@ function lumbarShape(y: number): Shape {
   )
 }
 
-/* ───────────────────────── neck ───────────────────────── */
-
-/*
- * The seven neck vertebrae, from the top of the chest spine up into the base of the
- * head: small blocks stacked in a gentle forward curve, the lowest with the long spine
- * you can feel at the base of the neck, the top two the ring (atlas) and the peg (axis)
- * the head turns on.  y, z of each body, and how far back its spine reaches.
- */
-const NECK: [number, number, number][] = [
-  [5.36, -0.44, -0.84],
-  [5.56, -0.38, -0.66],
-  [5.75, -0.33, -0.6],
-  [5.94, -0.3, -0.58],
-  [6.12, -0.29, -0.58],
-]
-
-function cervicalShape(): Shape {
-  const parts: Shape[] = []
-  NECK.forEach(([y, z, back], i) => {
-    parts.push(
-      egg([0, y, z], [0.15 - 0.008 * i, 0.075, 0.12]),
-      bar([0, y, z - 0.1], [0, y - 0.07 - (i === 0 ? 0.08 : 0), back], 0.035, 0.03),
-      bar([0.08, y, z - 0.04], [0.24, y + 0.01, z - 0.04], 0.03, 0.025),
-    )
-  })
-  // the axis, with its peg pointing up through the ring above, and its heavy spine
-  parts.push(
-    egg([0, 6.3, -0.29], [0.13, 0.1, 0.11]),
-    bar([0, 6.3, -0.28], [0, 6.48, -0.27], 0.045, 0.035),
-    bar([0, 6.28, -0.38], [0, 6.2, -0.62], 0.05, 0.04),
-  )
-  // the atlas: a ring with two thick sides and wide wings, the head sits on it
-  parts.push(ring([0, 6.5, -0.33], [0, 1, 0], 0.16, 0.035), egg([0.15, 6.5, -0.3], [0.06, 0.05, 0.07]), bar([0.15, 6.5, -0.32], [0.3, 6.5, -0.33], 0.04, 0.035))
-  return mirrored(fuse(0.03, parts))
-}
-
-/* ───────────────────────── head ───────────────────────── */
-
-
-/*
- * The head: not a skull and no features - a chiselled mannequin head, like a block an
- * artist carves to find the big planes. A round cranium and a jaw mass, cut by flat
- * planes (each a direction and a point on it, left side), and the creases between the
- * planes inked so it reads like a drawing. It sits on the ring at the top of the neck.
- */
-const HEAD_PLANES: [Vec3, Vec3][] = [
-  [[1, 0, 0], [0.55, 0, 0]], // side of the head (temple)
-  [[0, 0.1, 1], [0, 6.9, 0.8]], // face
-  [[0, 0.55, 0.83], [0, 7.55, 0.66]], // forehead, breaking back at the brow
-  [[0, 1, 0.12], [0, 7.88, 0]], // top
-  [[0.68, 0.73, 0], [0.42, 7.66, 0]], // crown, at the side
-  [[0.6, 0.4, 0.69], [0.42, 7.45, 0.55]], // corner of the forehead
-  [[0.62, -0.05, 0.78], [0.43, 6.85, 0.6]], // cheek
-  [[0.74, -0.5, 0.45], [0.44, 6.45, 0.32]], // jaw, narrowing to the chin
-  [[0, -0.55, 0.83], [0, 6.22, 0.68]], // chin
-  [[0.5, -0.5, 0.7], [0.18, 6.22, 0.62]], // corner of the chin
-  [[0, -1, 0.3], [0, 6.2, 0.4]], // under the jaw
-  [[0, -0.72, -0.7], [0, 6.48, -0.36]], // under the back of the head
-  [[0, 0.15, -1], [0, 7.1, -0.68]], // back
-  [[0.62, 0.2, -0.76], [0.42, 7.15, -0.5]], // back corner
-  [[0, 0.7, -0.72], [0, 7.7, -0.48]], // back of the crown
-]
-
-/** The mass the head is carved from - generous, so the planes cut deep and meet in straight edges. */
-const headBase = (): Shape => fuse(0.18, [egg([0, 7.16, 0.02], [0.76, 0.9, 0.96]), egg([0, 6.6, 0.3], [0.6, 0.62, 0.7])])
-
-/** Each plane as a field: positive on its outer side. */
-const headPlaneFields = (): Field[] =>
-  HEAD_PLANES.map(([n, at]) => {
-    const u = unit(n)
-    const d = u[0] * at[0] + u[1] * at[1] + u[2] * at[2]
-    return (x: number, y: number, z: number) => u[0] * x + u[1] * y + u[2] * z - d
-  })
-
-function headShape(): Shape {
-  let h = headBase()
-  for (const f of headPlaneFields()) h = clip(h, 0.02, f)
-  return mirrored(h)
-}
-
-/** The fields the head is carved from, for inking its edges (on both halves). */
-const headFacets = (): Field[] => [headBase().f, ...headPlaneFields()].map((f) => (x: number, y: number, z: number) => f(Math.abs(x), y, z))
-
 /* ───────────────────────── shoulder ───────────────────────── */
 
 function clavicleShape(): Shape {
@@ -329,21 +244,7 @@ const lumbarMeshes = LUMBAR.map(([y]) =>
 const clavicleMesh = sculpted('clavicle', { field: () => clavicleShape().f, lo: [0.0, 4.8, -0.15], hi: [1.95, 5.15, 0.8], step: 0.016 })
 const scapulaMesh = sculpted('scapula', { field: () => scapulaShape().f, lo: [0.55, 3.25, -1.1], hi: [2.0, 5.08, 0.2], step: 0.016 })
 
-const cervicalMesh = sculpted('cervical', { field: () => cervicalShape().f, lo: [-0.42, 5.2, -0.9], hi: [0.42, 6.62, -0.12], step: 0.014, symmetric: true })
-const headMesh = sculpted('head', {
-  field: () => headShape().f,
-  facets: headFacets,
-  lo: [-0.72, 6.0, -0.9],
-  hi: [0.72, 7.98, 1.0],
-  step: 0.016,
-  symmetric: true,
-})
-
 export const ribCageSolid = (): SolidDef => ({ frame: 'ribs', mesh: ribCageMesh })
-/** The neck vertebrae, riding with the rib cage. */
-export const cervicalSolid = (): SolidDef => ({ frame: 'ribs', mesh: cervicalMesh })
-/** The carved head, riding with the rib cage. */
-export const headSolid = (): SolidDef => ({ frame: 'ribs', mesh: headMesh })
 /** The lumbar vertebrae, each on its share of the waist bend ('w@k'). */
 export const lumbarSolids = (): { id: string; solid: SolidDef }[] =>
   LUMBAR.map(([, k], i) => ({ id: `L${i + 1}`, solid: { frame: k === 0 ? 'pelvis' : `w@${k}`, mesh: lumbarMeshes[i] } }))

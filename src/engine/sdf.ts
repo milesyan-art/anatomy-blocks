@@ -626,6 +626,67 @@ export function meshField(field: Field, lo: Vec3, hi: Vec3, step: number, symmet
   return { position, normal, index }
 }
 
+
+/*
+ * A carved form, described as a little tree so it can be both meshed and inked:
+ * smooth pieces (each one face), cut by or joined to other pieces with crisp edges.
+ */
+export type Carve =
+  /** A smooth piece: one face, however it curves. */
+  | { piece: Field }
+  /** Keep what is inside all of them (cuts), edges `k` round. */
+  | { all: Carve[]; k?: number }
+  /** Keep what is inside any of them (joins), edges `k` round. */
+  | { any: Carve[]; k?: number }
+
+/** The carved form's distance field, for meshing. */
+export function carveField(c: Carve): Field {
+  if ('piece' in c) return c.piece
+  const parts = ('all' in c ? c.all : c.any).map(carveField)
+  const k = c.k ?? 0.015
+  const join = 'all' in c ? smax : smin
+  return (x, y, z) => {
+    let d = parts[0](x, y, z)
+    for (let i = 1; i < parts.length; i++) d = join(d, parts[i](x, y, z), k)
+    return d
+  }
+}
+
+/** Which face of a carved form a point belongs to, and how far (in field units) it is from the next face. */
+export type FaceOf = (x: number, y: number, z: number) => [face: number, margin: number]
+
+/** Number the pieces of a carved form, and tell for any point which one it is on. */
+export function carveFaces(c: Carve): FaceOf {
+  let count = 0
+  type Eval = (x: number, y: number, z: number) => [value: number, face: number, margin: number]
+  const build = (n: Carve): Eval => {
+    if ('piece' in n) {
+      const face = count++
+      return (x, y, z) => [n.piece(x, y, z), face, Infinity]
+    }
+    const parts = ('all' in n ? n.all : n.any).map(build)
+    // a cut is decided by the highest field, a join by the lowest
+    const sign = 'all' in n ? 1 : -1
+    return (x, y, z) => {
+      let best: [number, number, number] = parts[0](x, y, z)
+      let second = -Infinity
+      for (let i = 1; i < parts.length; i++) {
+        const r = parts[i](x, y, z)
+        if (r[0] * sign > best[0] * sign) {
+          second = best[0] * sign
+          best = r
+        } else second = Math.max(second, r[0] * sign)
+      }
+      return [best[0], best[1], Math.min(best[2], best[0] * sign - second)]
+    }
+  }
+  const root = build(c)
+  return (x, y, z) => {
+    const r = root(x, y, z)
+    return [r[1], r[2]]
+  }
+}
+
 /** Colour a graph with four colours so neighbours always differ (backtracking; small graphs). */
 function fourColour(n: number, near: Set<number>[]): number[] {
   const colour = new Array<number>(n).fill(-1)
@@ -646,35 +707,27 @@ function fourColour(n: number, near: Set<number>[]): number[] {
 }
 
 /**
- * Ink the edges of a carved form - a base shape cut by planes - and nothing else.
+ * Ink the edges of a carved form and nothing else.
  *
- * Every vertex belongs to the face (field) that is highest there. Its two ink values
- * start at 0 on an edge (where the two highest fields meet) and rise to 0.5 inside a
- * face, each with a sign taken from the face's colour; touching faces get different
- * colours, so at least one value changes sign across every edge - a crossing the fill
- * shader inks - while inside a face both stay at a steady +-0.5 and draw nothing.
+ * Every vertex belongs to one face (see `carveFaces`). Its two ink values start at 0 on
+ * an edge and rise to 0.5 inside a face, each with a sign taken from the face's colour;
+ * touching faces get different colours, so at least one value changes sign across every
+ * edge - a crossing the fill shader inks - while inside a face both stay at a steady
+ * +-0.5 and draw nothing.
  */
-export function facetInk(mesh: SolidMesh, fields: Field[], width = 0.03): Float32Array {
+export function facetInk(mesh: SolidMesh, faceOf: FaceOf, width = 0.03): Float32Array {
   const p = mesh.position
   const V = p.length / 3
   const face = new Int32Array(V)
   const rise = new Float32Array(V)
+  let faces = 0
   for (let v = 0; v < V; v++) {
-    let a = -Infinity
-    let b = -Infinity
-    let top = 0
-    for (let i = 0; i < fields.length; i++) {
-      const f = fields[i](p[v * 3], p[v * 3 + 1], p[v * 3 + 2])
-      if (f > a) {
-        b = a
-        a = f
-        top = i
-      } else if (f > b) b = f
-    }
-    face[v] = top
-    rise[v] = Math.min(0.5, (a - b) / width)
+    const [f, margin] = faceOf(p[v * 3], p[v * 3 + 1], p[v * 3 + 2])
+    face[v] = f
+    rise[v] = Math.min(0.5, margin / width)
+    faces = Math.max(faces, f + 1)
   }
-  const near = fields.map(() => new Set<number>())
+  const near = Array.from({ length: faces }, () => new Set<number>())
   const idx = mesh.index
   for (let t = 0; t < idx.length; t += 3) {
     for (let e = 0; e < 3; e++) {
@@ -686,7 +739,7 @@ export function facetInk(mesh: SolidMesh, fields: Field[], width = 0.03): Float3
       }
     }
   }
-  const colour = fourColour(fields.length, near)
+  const colour = fourColour(faces, near)
   const ink = new Float32Array(V * 2)
   for (let v = 0; v < V; v++) {
     const c = colour[face[v]]
@@ -706,11 +759,8 @@ export interface Sculpt {
   step: number
   /** Mirror-symmetric across x = 0 (only half is evaluated). */
   symmetric?: boolean
-  /**
-   * For a carved form: the fields it was cut from (its base and each cutting plane).
-   * The edges where two of them meet are inked (see `facetInk`).
-   */
-  facets?: () => Field[]
+  /** For a carved form: which face each point is on, so the edges between faces are inked (see `facetInk`). */
+  faces?: () => FaceOf
 }
 
 const sculpts = new Map<string, Sculpt>()
@@ -721,7 +771,7 @@ function buildSculpt(key: string): SolidMesh {
   if (!mesh) {
     const s = sculpts.get(key) as Sculpt
     mesh = meshField(s.field(), s.lo, s.hi, s.step, s.symmetric)
-    if (s.facets) mesh.ink = facetInk(mesh, s.facets())
+    if (s.faces) mesh.ink = facetInk(mesh, s.faces())
     sculptMeshes.set(key, mesh)
   }
   return mesh

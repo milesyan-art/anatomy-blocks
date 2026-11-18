@@ -21,7 +21,7 @@ import { WRIST, humerusSolid, radiusSolid, ulnaSolid } from './armBones'
 import { relaxedHand } from './hand'
 import { handBones } from './handBones'
 import { pelvisBlocks, pelvisSolid } from './pelvis'
-import { SHOULDER, cervicalSolid, clavicleSolid, headSolid, lumbarSolids, ribCageSolid, scapulaSolid } from './torsoBones'
+import { SHOULDER, clavicleSolid, lumbarSolids, ribCageSolid, scapulaSolid } from './torsoBones'
 
 /*
  * Torso, facing +Z.   +X = the figure's left   +Y = up
@@ -182,9 +182,22 @@ const middle: SweepDef[] = [
   // vertebrae below it, each riding its share of the bend (see torsoBones.ts)
   { id: 'ribcage', group: 'bone', kind: 'bone', path: [], solid: ribCageSolid() },
   ...lumbarSolids().map(({ id, solid }): SweepDef => ({ id, group: 'bone', kind: 'bone', path: [], solid })),
-  // the neck vertebrae, finishing the spine, and the carved head they carry (see torsoBones.ts)
-  { id: 'cervical', group: 'bone', kind: 'bone', path: [], solid: cervicalSolid() },
-  { id: 'head', group: 'head', kind: 'prop', path: [], solid: headSolid() },
+  {
+    id: 'head',
+    group: 'head',
+    kind: 'prop',
+    section: 'crate',
+    path: [
+      // a strong neck column, leaning forward out of the rib cage
+      P('ribs', 0, 4.95, -0.2, 0.4, 0.38, { n: FRONT }),
+      P('ribs', 0, 5.65, -0.06, 0.35, 0.35, { n: FRONT }),
+      P('ribs', 0, 6.0, 0.12, 0.42, 0.5, { n: FRONT }),
+      P('ribs', 0, 6.55, 0.16, 0.57, 0.7, { n: FRONT }),
+      P('ribs', 0, 7.2, 0.1, 0.6, 0.74, { n: FRONT }),
+      P('ribs', 0, 7.68, 0.02, 0.46, 0.58, { n: FRONT }),
+      P('ribs', 0, 7.88, -0.02, 0.24, 0.32, { n: FRONT }),
+    ],
+  },
 
 ]
 
@@ -293,8 +306,7 @@ const left: SweepDef[] = [
     path: [
       P('ribs', 0.14, 4.95, 0.6, 0.08, 0.06, { n: [0.2, 0, 1] }),
       P('ribs', 0.38, 5.6, 0.26, 0.11, 0.08, { n: [0.7, 0, 0.7] }),
-      // up behind the jaw, onto the underside of the head
-      P('ribs', 0.46, 6.4, -0.2, 0.09, 0.06, { n: OUT }),
+      P('ribs', 0.5, 6.12, -0.12, 0.09, 0.06, { n: OUT }),
     ],
     label: 1,
   },
@@ -357,8 +369,7 @@ const left: SweepDef[] = [
     group: 'traps',
     kind: 'muscle',
     path: [
-      // from the base of the head
-      P('ribs', 0.14, 6.62, -0.52, 0.18, 0.08, { n: [0.2, 0, -1] }),
+      P('ribs', 0.14, 6.1, -0.42, 0.18, 0.08, { n: [0.2, 0, -1] }),
       // arms overhead shrug the shoulders: the slope bunches up, wider and thicker
       P('ribs', 0.42, 5.58, -0.52, 0.32, 0.18, { n: [0.2, 0.5, -0.85], ...armsUp([0.42, 5.5, -0.56], 0.46, 0.26) }),
       P('clavL', 1.12, 5.16, -0.42, 0.38, 0.2, { n: [0, 0.9, -0.44], ...armsUp([1.12, 5.12, -0.44], 0.46, 0.26) }),
@@ -426,7 +437,6 @@ const FEMALE_FORMS: Record<string, Partial<SweepDef>> = {
 function feminize(def: SweepDef): SweepDef {
   const own = FEMALE_FORMS[def.id]
   if (own) return { ...def, ...own }
-  if (def.id === 'head') return def
   if (def.solid) {
     // sculpted bones keep their shape and are stretched with the space they sit in
     const base = def.solid.frame.replace(/@.*/, '')
@@ -458,6 +468,9 @@ function feminize(def: SweepDef): SweepDef {
         alt: pt.alt?.p ? { ...pt.alt, p: squeeze(pt.alt.p) } : pt.alt,
       }
       if (soft) return resize(moved, Math.min(kx, 0.93), def.group === 'pecs' ? 0.55 : 0.72)
+      // a slimmer, longer-looking neck
+      if (def.id === 'head' && pt.p[1] < 5.9) return resize(moved, 0.8, 0.86)
+      if (def.id === 'head') return resize(moved, kx, kz)
       if (def.id === 'spine') return resize(moved, 0.9, 0.9)
       if (def.id === 'arm') return resize(moved, 0.8, 0.8)
       return moved
