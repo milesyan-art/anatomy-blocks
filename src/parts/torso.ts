@@ -21,7 +21,7 @@ import { WRIST, humerusSolid, radiusSolid, ulnaSolid } from './armBones'
 import { relaxedHand } from './hand'
 import { handBones } from './handBones'
 import { pelvisBlocks, pelvisSolid } from './pelvis'
-import { SHOULDER, cervicalSolid, clavicleSolid, headSolid, lumbarSolids, ribCageSolid, scapulaSolid } from './torsoBones'
+import { SHOULDER, SKULL, cervicalSolid, clavicleSolid, headSolid, lumbarSolids, ribCageSolid, scapulaSolid } from './torsoBones'
 
 /*
  * Torso, facing +Z.   +X = the figure's left   +Y = up
@@ -293,8 +293,8 @@ const left: SweepDef[] = [
     path: [
       P('ribs', 0.14, 4.95, 0.6, 0.08, 0.06, { n: [0.2, 0, 1] }),
       P('ribs', 0.38, 5.6, 0.26, 0.11, 0.08, { n: [0.7, 0, 0.7] }),
-      // up behind the jaw, onto the underside of the head
-      P('ribs', 0.46, 6.4, -0.2, 0.09, 0.06, { n: OUT }),
+      // up behind the jaw, onto the mastoid knob of the skull
+      P('ribs', SKULL.mastoid[0] + 0.02, SKULL.mastoid[1] + 0.02, SKULL.mastoid[2], 0.09, 0.06, { n: OUT }),
     ],
     label: 1,
   },
@@ -357,8 +357,8 @@ const left: SweepDef[] = [
     group: 'traps',
     kind: 'muscle',
     path: [
-      // from the base of the head
-      P('ribs', 0.14, 6.62, -0.52, 0.18, 0.08, { n: [0.2, 0, -1] }),
+      // from the bump at the back of the skull and the ridge running out from it
+      P('ribs', SKULL.nuchalLine[0] - 0.04, SKULL.nuchalLine[1], SKULL.nuchalLine[2] - 0.02, 0.14, 0.06, { n: [0.2, 0.3, -0.93] }),
       // arms overhead shrug the shoulders: the slope bunches up, wider and thicker
       P('ribs', 0.42, 5.58, -0.52, 0.32, 0.18, { n: [0.2, 0.5, -0.85], ...armsUp([0.42, 5.5, -0.56], 0.46, 0.26) }),
       P('clavL', 1.12, 5.16, -0.42, 0.38, 0.2, { n: [0, 0.9, -0.44], ...armsUp([1.12, 5.12, -0.44], 0.46, 0.26) }),
