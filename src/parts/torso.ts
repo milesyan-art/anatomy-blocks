@@ -20,7 +20,7 @@ import { CARRY, ELBOW_Y, armRig } from './arm'
 import { WRIST, humerusSolid, radiusSolid, ulnaSolid } from './armBones'
 import { relaxedHand } from './hand'
 import { handBones } from './handBones'
-import { pelvisBlocks, pelvisSolid } from './pelvis'
+import { FEMALE_HIPS_X, FEMALE_RIM_X, pelvisBlocks, pelvisSolid } from './pelvis'
 import { SHOULDER, clavicleSolid, lumbarSolids, ribCageSolid, scapulaSolid } from './torsoBones'
 
 /*
@@ -420,8 +420,8 @@ const mirror = (def: SweepDef): SweepDef => ({
  */
 export const RIBS_X = 0.87
 const WAIST_X = 0.78
-const HIPS_X = 1.07
-const RIM_X = 0.93
+const HIPS_X = FEMALE_HIPS_X
+const RIM_X = FEMALE_RIM_X
 /** Pieces whose width is a left-right measure, so it narrows along with the body. */
 
 /*

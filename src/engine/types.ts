@@ -1,4 +1,4 @@
-import type { BufferGeometry, Matrix4, Vector3 } from 'three'
+import type { BufferGeometry, Matrix4, Object3D, Vector3 } from 'three'
 
 export type Vec3 = [number, number, number]
 
@@ -87,15 +87,28 @@ export interface SolidMesh {
  * A form sculpted once at full resolution and then only carried along by one frame -
  * for bones whose shape never changes (see `engine/sdf.ts`).
  */
+/**
+ * A sculpted mesh that may not be built yet: it is meshed off the main thread (or read
+ * from the browser's cache) and arrives later. See `engine/meshes.ts`.
+ */
+export interface MeshRef {
+  readonly key: string
+  /** The mesh, if it has arrived. */
+  current(): SolidMesh | null
+  /** The mesh, once it has arrived. */
+  load(): Promise<SolidMesh>
+}
+
 export interface SolidDef {
   /** The frame it is glued to. */
   frame: string
-  /** Builds the mesh. Called once per form, so it should cache an expensive build. */
-  mesh: () => SolidMesh
+  mesh: MeshRef
   /** Slides the whole mesh (in frame space), for rigs with a different origin. */
   offset?: Vec3
   /** Stretches the mesh about the frame's origin before sliding it (e.g. narrower female ribs). */
   scale?: Vec3
+  /** Reflected across x = 0 after it is slid and stretched: the right-hand copy of a left part. */
+  mirror?: boolean
 }
 
 export interface SweepDef {
@@ -129,6 +142,16 @@ export interface Form {
   /** Where the label points at, in rig space. */
   readonly anchor: Vector3
   readonly anchorNormal: Vector3
+  /**
+   * Forms that are moved as a whole (sculpted bones) take over the matrix of the objects
+   * that draw them; others leave it alone.
+   */
+  attach?(obj: Object3D): void
+  detach?(obj: Object3D): void
+  /** For forms whose geometry arrives later: resolves when it has. */
+  readonly ready?: Promise<void>
+  /** False while the geometry is still on its way (nothing to draw yet). */
+  readonly loaded?: boolean
   /** Remember the resting pose (flexing is measured against it). */
   setRest(frames: FrameGetter, drives: Record<string, number>): void
   update(frames: FrameGetter, drives: Record<string, number>): void

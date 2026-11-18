@@ -1,9 +1,9 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import type { ThreeEvent } from '@react-three/fiber'
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useReducer, useRef } from 'react'
 import type { CSSProperties } from 'react'
 import { Box3, Color, DepthTexture, DoubleSide, Matrix4, MeshBasicMaterial, OrthographicCamera, Sphere, Spherical, Vector3, WebGLRenderTarget } from 'three'
-import type { Mesh, Object3D, PerspectiveCamera } from 'three'
+import type { Group, Mesh, Object3D, PerspectiveCamera } from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { DEG } from '../engine/frames'
 import {
@@ -543,6 +543,19 @@ function RigModel({
   }, [rig, solid])
 
   useEffect(() => () => sweeps.forEach((s) => s.dispose()), [sweeps])
+  // sculpted bones arrive from the mesh workers a moment later: draw them when they do
+  const [count, arrived] = useReducer((n: number) => n + 1, 0)
+  useEffect(() => {
+    let live = true
+    for (const s of sweeps) if (!s.loaded) s.ready?.then(() => live && arrived())
+    return () => {
+      live = false
+    }
+  }, [sweeps])
+  // ... and redraw once they are in the scene (the canvas only draws on demand)
+  useEffect(() => {
+    if (count) invalidate()
+  }, [count, invalidate])
 
   const groups = useMemo(() => new Map(rig.groups.map((g) => [g.id, g])), [rig])
   const mirror = mirrorOf(rig, side)
@@ -576,6 +589,7 @@ function RigModel({
   )
 
   function renderSweep(s: Form) {
+    if (s.loaded === false) return null
     const { kind, group } = s.def
     if (kind === 'bone') {
       return options.bones ? <SweepMesh key={s.def.id} sweep={s} guides={false} dim={0} solid={solid} /> : null
@@ -674,8 +688,17 @@ function SweepMesh({ sweep, group, guides, dim, solid = false, onHover, onSelect
       }
     : {}
 
+  // a form moved as a whole (a sculpted bone) places this group itself
+  const place = useRef<Group>(null)
+  useLayoutEffect(() => {
+    const g = place.current
+    if (!g || !sweep.attach) return
+    sweep.attach(g)
+    return () => sweep.detach?.(g)
+  }, [sweep])
+
   return (
-    <>
+    <group ref={place}>
       <mesh ref={castsShadow} geometry={sweep.geometry} {...handlers}>
         <primitive
           object={mats.fill}
@@ -690,7 +713,7 @@ function SweepMesh({ sweep, group, guides, dim, solid = false, onHover, onSelect
       </mesh>
       {/* see-through bones only in the reference look; the solid model hides what is inside */}
       {mats.ghost && !solid && <mesh geometry={sweep.geometry} material={mats.ghost} renderOrder={10} />}
-    </>
+    </group>
   )
 }
 
