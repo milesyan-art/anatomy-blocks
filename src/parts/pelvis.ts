@@ -338,6 +338,10 @@ function pelvisField(rimX: number, baseX: number): Field {
   }
 }
 
+/** The female pelvis: a little narrower at the crest, wider underneath (see `pelvisSolid`). */
+export const FEMALE_RIM_X = 0.93
+export const FEMALE_HIPS_X = 1.07
+
 /** The pelvis as one sculpted solid. `rimX` / `baseX` re-proportion it (the female pelvis). */
 export function pelvisSolid(rimX = 1, baseX = 1, dx = 0): SolidDef {
   const w = 1.6 * Math.max(rimX, baseX, 1)

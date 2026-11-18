@@ -1,4 +1,5 @@
-import type { SolidMesh, Vec3 } from './types'
+import { simplify } from './simplify'
+import type { MeshRef, SolidMesh, Vec3 } from './types'
 
 /*
  * Sculpting with distance fields.
@@ -761,48 +762,66 @@ export interface Sculpt {
   symmetric?: boolean
   /** For a carved form: which face each point is on, so the edges between faces are inked (see `facetInk`). */
   faces?: () => FaceOf
+  /** Share of the triangles to keep when simplifying (default `KEEP`). */
+  keep?: number
 }
 
 const sculpts = new Map<string, Sculpt>()
 const sculptMeshes = new Map<string, SolidMesh>()
+const pending = new Map<string, Promise<SolidMesh>>()
 
-function buildSculpt(key: string): SolidMesh {
-  let mesh = sculptMeshes.get(key)
-  if (!mesh) {
-    const s = sculpts.get(key) as Sculpt
-    mesh = meshField(s.field(), s.lo, s.hi, s.step, s.symmetric)
-    if (s.faces) mesh.ink = facetInk(mesh, s.faces())
-    sculptMeshes.set(key, mesh)
-  }
+/** How much of the mesher's triangles a part keeps after simplifying (see `simplify`). */
+export const KEEP = 0.22
+
+/**
+ * Build a part's mesh right here: mesh the field, simplify, ink. Slow (up to a second
+ * for the rib cage), so the app does it in a worker - see `engine/meshes.ts`.
+ */
+export function buildSculpt(key: string): SolidMesh {
+  const s = sculpts.get(key)
+  if (!s) throw new Error(`no sculpted part called ${key}`)
+  const fine = meshField(s.field(), s.lo, s.hi, s.step, s.symmetric)
+  const mesh = s.faces ? fine : simplify(fine, s.keep ?? KEEP)
+  if (s.faces) mesh.ink = facetInk(mesh, s.faces())
   return mesh
 }
 
-/*
- * Parts are meshed while the browser is idle, one per idle moment, so opening a
- * lesson - or switching body - rarely has to wait. Whatever is not built yet when
- * a rig needs it is built on the spot.
- */
-let warming = false
-function warmUp() {
-  if (warming || typeof window === 'undefined') return
-  warming = true
-  const idle: (fn: () => void) => void =
-    'requestIdleCallback' in window ? (fn) => window.requestIdleCallback(fn, { timeout: 4000 }) : (fn) => setTimeout(fn, 200)
-  const next = () => {
-    const key = [...sculpts.keys()].find((k) => !sculptMeshes.has(k))
-    if (key === undefined) {
-      warming = false
-      return
-    }
-    buildSculpt(key)
-    idle(next)
-  }
-  idle(next)
+/** Every part registered so far. */
+export const sculptKeys = (): string[] => [...sculpts.keys()]
+
+/** Where meshes come from (see `engine/meshes.ts`); until one is set, they are built on the spot. */
+export interface MeshLoader {
+  /** Start building a part; `urgent` = something is waiting to draw it. */
+  load(key: string, urgent: boolean): Promise<SolidMesh>
+  /** A part already on its way is now wanted urgently. */
+  hurry(key: string): void
+}
+let loader: MeshLoader | null = null
+export function setMeshLoader(l: MeshLoader) {
+  loader = l
 }
 
-/** Register a sculpted part under a unique key; returns the function that hands out its (cached) mesh. */
-export function sculpted(key: string, s: Sculpt): () => SolidMesh {
+function load(key: string, urgent = true): Promise<SolidMesh> {
+  let p = pending.get(key)
+  if (p) {
+    if (urgent && !sculptMeshes.has(key)) loader?.hurry(key)
+    return p
+  }
+  p = (loader ? loader.load(key, urgent) : Promise.resolve().then(() => buildSculpt(key))).then((mesh) => {
+    sculptMeshes.set(key, mesh)
+    return mesh
+  })
+  pending.set(key, p)
+  return p
+}
+
+/** Fetch every registered part in the background, so switching lessons finds them ready. */
+export function preloadAll() {
+  for (const key of sculpts.keys()) load(key, false)
+}
+
+/** Register a sculpted part under a unique key; returns a handle to its mesh, which arrives later. */
+export function sculpted(key: string, s: Sculpt): MeshRef {
   if (!sculpts.has(key)) sculpts.set(key, s)
-  warmUp()
-  return () => buildSculpt(key)
+  return { key, current: () => sculptMeshes.get(key) ?? null, load: () => load(key) }
 }

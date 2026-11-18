@@ -1,6 +1,6 @@
 import { bar, brick, carve, clip, egg, fuse, rod, sculpted, squash } from '../engine/sdf'
 import type { Shape } from '../engine/sdf'
-import type { SweepDef, Vec3 } from '../engine/types'
+import type { MeshRef, SweepDef, Vec3 } from '../engine/types'
 
 /*
  * The bones of the leg and foot, sculpted the same way as the pelvis: simple artist
@@ -288,7 +288,7 @@ const shinStubMesh = sculpted('shin-stub', {
 const footMesh = sculpted('foot', { field: () => footShape().f, lo: [-0.45, -0.72, -0.85], hi: [0.55, 0.0, 1.32], step: 0.016 })
 const toesMesh = sculpted('toes', { field: () => toesShape().f, lo: [-0.42, -0.2, -0.15], hi: [0.5, 0.15, 0.7], step: 0.012 })
 
-const bone = (id: string, frame: string, mesh: () => ReturnType<typeof femurMesh>, offset?: Vec3): SweepDef => ({
+const bone = (id: string, frame: string, mesh: MeshRef, offset?: Vec3): SweepDef => ({
   id,
   group: 'bone',
   kind: 'bone',
