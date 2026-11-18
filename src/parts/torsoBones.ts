@@ -211,18 +211,19 @@ function cervicalShape(): Shape {
 /* ───────────────────────── head ───────────────────────── */
 
 /*
- * The head is two things joined:
+ * The head is one mass - vault, base of the skull and jaw grown together - treated two
+ * ways:
  *
- *   the back - a real skull, like the other bones, so the neck muscles have somewhere
- *              to land: the rounded back of the skull, the bump in the middle (inion),
- *              the ridge running from it out towards each ear (superior nuchal line),
- *              the knob behind the jaw (mastoid) and the flat underside that sits on
- *              the top of the neck;
- *   the rest - the artist's head: a ball for the cranium with its sides cut flat, and a
- *              block hung under the front of it for the face - flat front, brow on top,
- *              the jaw narrowing to a squared chin. No eyes, no nose, no teeth.
+ *   the back - left as a real skull, like the other bones, so the neck muscles have
+ *              somewhere to land: the rounded back of the skull, the bump in the middle
+ *              (inion), the ridge running from it out towards each ear (superior nuchal
+ *              line), the knob behind the jaw (mastoid) and the flat underside that sits
+ *              on the top of the neck;
+ *   the rest - carved into the artist's head: a round forehead, flat sides, the face's
+ *              flat front starting at the brow line, its front corners, the jaw narrowing
+ *              to a squared chin and the flat underside. No eyes, no nose, no teeth.
  *
- * The cuts of the artist's head are inked; the skull's back stays smooth, like bone.
+ * The carved edges are inked; the skull's back stays smooth, like bone.
  */
 
 /** The vault of the skull: centre and half sizes of its egg. */
@@ -252,11 +253,19 @@ const half = (n: Vec3, at: Vec3): Field => {
 }
 
 /** The cranium with the real back of the skull: one smooth piece. */
-function skull(): Field {
-  const vault = fuse(0.16, [egg(VAULT_C, VAULT_R), egg([0, 6.62, -0.38], [0.5, 0.25, 0.4])])
+function headMass(): Field {
+  // one mass: the vault, the base of the skull behind the neck, and the face and jaw
+  // grown out of the front of it - so the planes below carve a single head, not a ball
+  // with a box stuck under it
+  const mass = fuse(0.16, [
+    egg(VAULT_C, VAULT_R),
+    egg([0, 6.62, -0.38], [0.5, 0.25, 0.4]),
+    // the face, reaching up to the brow
+    brick([0, 6.66, 0.35], [0.52, 0.53, 0.47], 0.14),
+  ])
   // the underside behind the neck is flatter than the vault
   const under = half([0, -0.75, -0.66], [0, 6.52, -0.42])
-  const base: Shape = { lo: vault.lo, hi: vault.hi, f: (x, y, z) => smax(vault.f(x, y, z), under(x, y, z), 0.08) }
+  const base: Shape = { lo: mass.lo, hi: mass.hi, f: (x, y, z) => smax(mass.f(x, y, z), under(x, y, z), 0.08) }
   // the nuchal ridge, curving out and down from the bump to the mastoid - blended as one
   // smooth ridge, so it reads as a line on the bone rather than a string of beads
   const ridge = fuse(
@@ -276,22 +285,22 @@ function skull(): Field {
   ]).f
 }
 
-/** The face block's planes (left side): a front narrower than the sides, the jaw narrowing to a squared chin. */
-const FACE: [Vec3, Vec3][] = [
-  [[0, 0.06, 1], [0, 6.8, 0.79]], // front of the face, standing a little proud of the forehead
-  [[0, 1, 0.35], [0, 7.2, 0.66]], // top of the block: the brow line where it meets the front
-  [[0.6, 0, 0.8], [0.34, 6.8, 0.66]], // front corner: the face turns from front to side
-  [[1, 0.12, 0.1], [0.48, 6.9, 0.2]], // side of the face, under the cheekbone
+/*
+ * The planes carved into the front and sides (left side; each a direction and a point
+ * on it). None of them reaches round to the back, which stays the smooth skull.
+ */
+const HEAD_PLANES: [Vec3, Vec3][] = [
+  [[1, 0, 0], [0.56, 0, 0]], // side of the head: the flat oval of the side plane
+  [[0, 0.06, 1], [0, 6.8, 0.76]], // front of the face; its top edge, where the round forehead takes over, is the brow line
+  [[0.6, 0, 0.8], [0.34, 6.8, 0.64]], // front corner: the face turns from front to side
+  [[1, 0.1, 0.15], [0.5, 6.85, 0.2]], // side of the face, under the cheekbone
   [[0.85, -0.45, 0.25], [0.4, 6.4, 0.3]], // jaw, narrowing towards the chin
+  [[0.55, -0.35, 0.75], [0.18, 6.24, 0.68]], // corner of the chin
   [[0, -1, 0.35], [0, 6.16, 0.5]], // under the jaw
-  [[0, -0.15, -1], [0, 6.5, -0.1]], // back edge of the jaw, rising to the ear
-  [[0.55, -0.35, 0.75], [0.18, 6.24, 0.7]], // corner of the chin
 ]
 
 function headCarve(): Carve {
-  const cranium: Carve = { all: [{ piece: skull() }, { piece: half([1, 0, 0], [0.56, 0, 0]) }] }
-  const face: Carve = { all: FACE.map(([n, at]) => ({ piece: half(n, at) })) }
-  return { any: [cranium, face] }
+  return { all: [{ piece: headMass() }, ...HEAD_PLANES.map(([n, at]): Carve => ({ piece: half(n, at) }))] }
 }
 
 /** Both halves from the left one. */
