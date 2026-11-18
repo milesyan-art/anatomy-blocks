@@ -636,8 +636,12 @@ export type Carve =
   | { piece: Field }
   /** Keep what is inside all of them (cuts), edges `k` round. */
   | { all: Carve[]; k?: number }
-  /** Keep what is inside any of them (joins), edges `k` round. */
-  | { any: Carve[]; k?: number }
+  /**
+   * Keep what is inside any of them (joins), edges `k` round. `seamless`: the later
+   * pieces are blended into the first with no edge of their own - they take the face
+   * they sit on (raised details on a carved surface).
+   */
+  | { any: Carve[]; k?: number; seamless?: boolean }
 
 /** The carved form's distance field, for meshing. */
 export function carveField(c: Carve): Field {
@@ -665,6 +669,15 @@ export function carveFaces(c: Carve): FaceOf {
       return (x, y, z) => [n.piece(x, y, z), face, Infinity]
     }
     const parts = ('all' in n ? n.all : n.any).map(build)
+    if ('any' in n && n.seamless) {
+      // the details melt into the first piece: its face and margin, the joined value
+      return (x, y, z) => {
+        const first = parts[0](x, y, z)
+        let v = first[0]
+        for (let i = 1; i < parts.length; i++) v = Math.min(v, parts[i](x, y, z)[0])
+        return [v, first[1], first[2]]
+      }
+    }
     // a cut is decided by the highest field, a join by the lowest
     const sign = 'all' in n ? 1 : -1
     return (x, y, z) => {
