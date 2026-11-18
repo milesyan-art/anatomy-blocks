@@ -650,9 +650,8 @@ function SweepMesh({ sweep, group, guides, dim, solid = false, onHover, onSelect
   )
 
   // the smooth model has no plane edges to ink
-  const edge = solid ? 0 : kind === 'bone' ? 0.3 : kind === 'prop' ? 0.6 : 0.5
-  // a carved prop (the head) inks its edges through both line coordinates
-  const ring = kind === 'prop' ? edge : guides ? (kind === 'tendon' ? 0.45 : 0.7) : 0
+  const edge = solid ? 0 : kind === 'bone' || kind === 'prop' ? 0.3 : 0.5
+  const ring = guides ? (kind === 'tendon' ? 0.45 : 0.7) : 0
 
   const id = sweep.def.group
   const handlers = onHover

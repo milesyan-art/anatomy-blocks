@@ -1,5 +1,5 @@
-import { bar, brick, carveFaces, carveField, egg, fuse, mirrored, ring, rod, sculpted, slab, smax, squash, unit } from '../engine/sdf'
-import type { Carve, Field, Shape } from '../engine/sdf'
+import { bar, brick, egg, fuse, mirrored, rod, sculpted, slab, squash } from '../engine/sdf'
+import type { Shape } from '../engine/sdf'
 import type { SolidDef, Vec3 } from '../engine/types'
 
 /*
@@ -10,8 +10,6 @@ import type { SolidDef, Vec3 } from '../engine/types'
  *              (frame 'ribs'). The ribs slope down from the spine; the cartilages of the
  *              lower ones climb back up to the breastbone and close the arch under it.
  *   lumbar     five separate vertebrae, each riding its own share of the waist bend
- *   neck       seven vertebrae up into the base of the head (frame 'ribs')
- *   head       the artist's planar head (forehead, eye band, nose, cheeks, chin, ears), smooth skull back
  *   collarbone an S-curved strut (frames 'clavL' / 'clavR')
  *   blade      the shoulder blade: a thin triangle with its ridge (spine), the shelf
  *              over the joint (acromion), the hook in front (coracoid) and the socket
@@ -172,170 +170,6 @@ function lumbarShape(y: number): Shape {
   )
 }
 
-/* ───────────────────────── neck ───────────────────────── */
-
-/*
- * The seven neck vertebrae, from the top of the chest spine up into the base of the
- * head: small blocks stacked in a gentle forward curve, the lowest with the long spine
- * you can feel at the base of the neck, the top two the ring (atlas) and the peg (axis)
- * the head turns on.  y, z of each body, and how far back its spine reaches.
- */
-const NECK: [number, number, number][] = [
-  [5.36, -0.44, -0.84],
-  [5.56, -0.38, -0.66],
-  [5.75, -0.33, -0.6],
-  [5.94, -0.3, -0.58],
-  [6.12, -0.29, -0.58],
-]
-
-function cervicalShape(): Shape {
-  const parts: Shape[] = []
-  NECK.forEach(([y, z, back], i) => {
-    parts.push(
-      egg([0, y, z], [0.15 - 0.008 * i, 0.075, 0.12]),
-      bar([0, y, z - 0.1], [0, y - 0.07 - (i === 0 ? 0.08 : 0), back], 0.035, 0.03),
-      bar([0.08, y, z - 0.04], [0.24, y + 0.01, z - 0.04], 0.03, 0.025),
-    )
-  })
-  // the axis, with its peg pointing up through the ring above, and its heavy spine
-  parts.push(
-    egg([0, 6.3, -0.29], [0.13, 0.1, 0.11]),
-    bar([0, 6.3, -0.28], [0, 6.48, -0.27], 0.045, 0.035),
-    bar([0, 6.28, -0.38], [0, 6.2, -0.62], 0.05, 0.04),
-  )
-  // the atlas: a ring with two thick sides and wide wings, the head sits on it
-  parts.push(ring([0, 6.5, -0.33], [0, 1, 0], 0.16, 0.035), egg([0.15, 6.5, -0.3], [0.06, 0.05, 0.07]), bar([0.15, 6.5, -0.32], [0.3, 6.5, -0.33], 0.04, 0.035))
-  return mirrored(fuse(0.03, parts))
-}
-
-/* ───────────────────────── head ───────────────────────── */
-
-/*
- * The head: the artist's planar head - the big planes a portrait is blocked in with,
- * edges inked. A flat top, the forehead's front and side planes, a recessed band across
- * the eyes under the brow, a box of a nose, the cheek planes running down to a small
- * flat chin, the oval side plane and flat plates for the ears. No eyes, no mouth.
- *
- * The back stays a smooth real skull, with the landmarks the neck muscles hang from:
- * the bump at the back (inion), the ridge running from it towards each ear (superior
- * nuchal line), the knob behind the jaw (mastoid) and the knobs that sit on the neck.
- */
-
-/** The vault of the skull: centre and half sizes of its egg. */
-const VAULT_C: Vec3 = [0, 7.18, -0.06]
-const VAULT_R: Vec3 = [0.64, 0.74, 0.79]
-/** A point on the back of the vault at (x, y). */
-const onVault = (x: number, y: number): Vec3 => {
-  const t = 1 - (x / VAULT_R[0]) ** 2 - ((y - VAULT_C[1]) / VAULT_R[1]) ** 2
-  return [x, y, VAULT_C[2] - VAULT_R[2] * Math.sqrt(Math.max(0, t))]
-}
-
-/** Landmarks on the back of the skull, where the neck muscles hang from (left side). */
-export const SKULL = {
-  /** The bump at the back of the skull (external occipital protuberance): the top of the trapezius. */
-  inion: [0, 6.8, -0.76] as Vec3,
-  /** The ridge from it out towards the ear (superior nuchal line), a third of the way out: trapezius. */
-  nuchalLine: onVault(0.18, 6.77),
-  /** The knob behind the jaw (mastoid process): the neck strap (sternocleidomastoid). */
-  mastoid: [0.46, 6.33, -0.23] as Vec3,
-}
-
-/** A flat cut: positive on the side `n` points to, through the point `at`. */
-const half = (n: Vec3, at: Vec3): Field => {
-  const u = unit(n)
-  const d = u[0] * at[0] + u[1] * at[1] + u[2] * at[2]
-  return (x, y, z) => u[0] * x + u[1] * y + u[2] * z - d
-}
-
-/** The whole head as one smooth mass, with the real back of the skull (left side). */
-function headMass(): Field {
-  const mass = fuse(0.14, [
-    egg(VAULT_C, VAULT_R),
-    // a fuller front, so the forehead's planes are broad faces
-    egg([0, 7.3, 0.25], [0.5, 0.5, 0.55]),
-    // the base of the skull behind the neck
-    egg([0, 6.62, -0.38], [0.5, 0.25, 0.4]),
-    // the face, brow to chin
-    brick([0, 6.62, 0.38], [0.44, 0.46, 0.4], 0.12),
-  ])
-  // the underside behind the neck is flatter than the vault
-  const under = half([0, -0.75, -0.66], [0, 6.52, -0.42])
-  const base: Shape = { lo: mass.lo, hi: mass.hi, f: (x, y, z) => smax(mass.f(x, y, z), under(x, y, z), 0.08) }
-  // the nuchal ridge, curving out and down from the bump to the mastoid - blended as one
-  // smooth ridge, so it reads as a line on the bone rather than a string of beads
-  const ridge = fuse(
-    0.06,
-    rod(
-      [onVault(0, 6.8), onVault(0.14, 6.78), onVault(0.26, 6.72), onVault(0.36, 6.64), [0.43, 6.5, -0.28]],
-      [0.024, 0.022, 0.021, 0.02, 0.018],
-    ),
-  )
-  return fuse(0.05, [
-    base,
-    egg(SKULL.inion, [0.06, 0.05, 0.05]),
-    ridge,
-    egg([0.45, 6.4, -0.24], [0.065, 0.11, 0.08], [0, 1, -0.3]),
-    // the two knobs that rest on the ring at the top of the neck
-    egg([0.1, 6.55, -0.3], [0.05, 0.04, 0.07]),
-  ]).f
-}
-
-/** Planes, each a direction and a point on it (left side). */
-type Planes = [Vec3, Vec3][]
-
-/** The head's planes. None reaches round to the back, which stays smooth. */
-const HEAD_PLANES: Planes = [
-  [[0, 1, 0.2], [0, 7.86, 0.1]], // top
-  [[0, 0.2, 0.98], [0, 7.35, 0.72]], // front of the forehead
-  [[0.75, 0.15, 0.64], [0.42, 7.4, 0.42]], // side of the forehead, turning to the temple
-  [[1, 0, 0], [0.57, 0, 0]], // the oval side plane
-  [[0, -0.05, 1], [0, 6.75, 0.76]], // front of the face, under the eyes
-  [[0.75, -0.25, 0.4], [0.42, 6.6, 0.5]], // cheek, running down and in to the chin
-  [[0.5, -0.85, 0], [0.4, 6.3, 0]], // jaw line, rising to the ear
-  [[0, -0.3, 1], [0, 6.22, 0.72]], // front of the chin
-  [[0, -1, 0.3], [0, 6.16, 0.6]], // under the chin
-]
-
-/*
- * The band across the eyes, pressed in under the brow. Each edge is a plane facing into
- * the band (what is kept lies beyond it), leaning forward so the walls slope; the floor
- * leans back towards the brow.
- */
-const EYE_BAND: Planes = [
-  [[0, -1, 0.4], [0, 7.08, 0.7]], // top, under the brow
-  [[0, 1, 0.4], [0, 6.93, 0.7]], // bottom, over the cheeks
-  [[-1, 0, 0.4], [0.44, 7.0, 0.7]], // outer end
-  [[0, 0.3, 0.95], [0, 7.0, 0.68]], // floor
-]
-
-/** The nose: a box, a little wider at the bottom, with a five-sided base. */
-const NOSE_PLANES: Planes = [
-  [[1, 0.15, 0.2], [0.09, 6.85, 0.8]], // side
-  [[0.7, 0, 0.7], [0.06, 6.8, 0.88]], // corner between side and front
-  [[0, 0.25, 1], [0, 6.85, 0.9]], // front, sloping out
-  [[0, -1, 0.3], [0, 6.72, 0.85]], // base
-  [[0, 1, 0.5], [0, 7.03, 0.76]], // where it starts, in the eye band
-  [[0, 0, -1], [0, 0, 0.5]], // back (inside the face)
-]
-
-const cut = (planes: Planes): Carve[] => planes.map(([n, at]) => ({ piece: half(n, at) }))
-
-function headCarve(): Carve {
-  // pressed in: beyond any edge of the band, or behind its floor
-  const eyes: Carve = { any: cut(EYE_BAND) }
-  const head: Carve = { all: [{ piece: headMass() }, ...cut(HEAD_PLANES), eyes] }
-  const nose: Carve = { all: cut(NOSE_PLANES) }
-  // the ear: a flat plate on the side of the head, leaning back
-  const ear: Carve = { piece: brick([0.58, 6.86, -0.14], [0.03, 0.19, 0.12], 0.02, [0.1, 1, -0.25], [0.35, 0, 1]).f }
-  return { any: [head, nose, ear], k: 0.02 }
-}
-
-/** Both halves from the left one. */
-const both =
-  <T>(f: (x: number, y: number, z: number) => T) =>
-  (x: number, y: number, z: number): T =>
-    f(Math.abs(x), y, z)
-
 /* ───────────────────────── shoulder ───────────────────────── */
 
 function clavicleShape(): Shape {
@@ -410,21 +244,7 @@ const lumbarMeshes = LUMBAR.map(([y]) =>
 const clavicleMesh = sculpted('clavicle', { field: () => clavicleShape().f, lo: [0.0, 4.8, -0.15], hi: [1.95, 5.15, 0.8], step: 0.016 })
 const scapulaMesh = sculpted('scapula', { field: () => scapulaShape().f, lo: [0.55, 3.25, -1.1], hi: [2.0, 5.08, 0.2], step: 0.016 })
 
-const cervicalMesh = sculpted('cervical', { field: () => cervicalShape().f, lo: [-0.42, 5.2, -0.9], hi: [0.42, 6.62, -0.12], step: 0.014, symmetric: true })
-const headMesh = sculpted('head', {
-  field: () => both(carveField(headCarve())),
-  faces: () => both(carveFaces(headCarve())),
-  lo: [-0.72, 6.0, -0.9],
-  hi: [0.72, 7.98, 1.06],
-  step: 0.014,
-  symmetric: true,
-})
-
 export const ribCageSolid = (): SolidDef => ({ frame: 'ribs', mesh: ribCageMesh })
-/** The neck vertebrae, riding with the rib cage. */
-export const cervicalSolid = (): SolidDef => ({ frame: 'ribs', mesh: cervicalMesh })
-/** The planar head, riding with the rib cage. */
-export const headSolid = (): SolidDef => ({ frame: 'ribs', mesh: headMesh })
 /** The lumbar vertebrae, each on its share of the waist bend ('w@k'). */
 export const lumbarSolids = (): { id: string; solid: SolidDef }[] =>
   LUMBAR.map(([, k], i) => ({ id: `L${i + 1}`, solid: { frame: k === 0 ? 'pelvis' : `w@${k}`, mesh: lumbarMeshes[i] } }))
