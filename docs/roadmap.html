@@ -41,11 +41,11 @@
         -webkit-font-smoothing: antialiased;
       }
 
-      /* The board is exactly what the screenshot captures: 1200 × 560. */
+      /* The board is exactly what the screenshot captures: 1200 × 860. */
       .board {
         position: relative;
         width: 1200px;
-        height: 560px;
+        height: 860px;
         padding: 44px 48px 36px;
         display: flex;
         flex-direction: column;
@@ -69,33 +69,53 @@
 
       main {
         flex: 1;
-        margin-top: 28px;
-        display: grid;
-        grid-template-columns: 236px 1fr;
-        gap: 28px;
+        margin-top: 26px;
+        display: flex;
+        flex-direction: column;
+        gap: 26px;
         min-height: 0;
       }
+      h2 { margin: 0; font: 600 21px/1 var(--display); }
 
       /* ── Today: what already ships ── */
       .today {
         border: 2.5px dashed var(--line);
         border-radius: 20px;
-        padding: 20px 20px 18px;
-        background: rgba(253, 252, 247, 0.55);
-        display: flex;
-        flex-direction: column;
+        padding: 20px 26px 22px;
+        background: rgba(253, 252, 247, 0.6);
       }
-      .today h2 { margin: 0 0 14px; font: 600 20px/1 var(--display); color: var(--ink-soft); }
-      .today ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 11px; }
-      .today li { display: flex; gap: 10px; align-items: center; font-size: 15px; font-weight: 700; color: var(--ink-soft); }
+      .today-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+      .today h2 { color: var(--ink-soft); }
+      .stats { display: flex; gap: 10px; }
+      .stat {
+        display: flex; align-items: baseline; gap: 7px;
+        padding: 5px 13px 6px;
+        border-radius: 12px;
+        background: var(--card);
+        border: 2px solid var(--line);
+      }
+      .stat b { font: 600 22px/1 var(--display); }
+      .stat span { font-size: 13.5px; font-weight: 700; color: var(--ink-soft); }
+      .groups { display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px; }
+      .group h3 {
+        margin: 0 0 11px;
+        font: 600 16.5px/1 var(--display);
+        display: flex; align-items: center; gap: 8px;
+      }
+      .group ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+      .group li { display: flex; gap: 9px; font-size: 14.5px; line-height: 1.3; font-weight: 700; }
+      .group li small { display: block; margin-top: 2px; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
       .tick {
-        flex: none; width: 20px; height: 20px; border-radius: 6px;
+        flex: none; width: 18px; height: 18px; border-radius: 6px; margin-top: 0.5px;
         background: var(--ink-soft); color: var(--card);
-        display: grid; place-items: center; font-size: 13px; font-weight: 800;
+        display: grid; place-items: center; font-size: 12px; font-weight: 800;
       }
 
+      .next { flex: 1; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
+      .next h2 { padding-left: 4px; }
+
       /* ── What we plan to build: a plain list of cards, in no particular order ── */
-      .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+      .plans { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
       .plan { display: flex; flex-direction: column; min-height: 0; }
 
       .card {
@@ -160,19 +180,76 @@
       const ROADMAP = {
         kicker: { en: 'Block Anatomy', zh: 'Block Anatomy 方块解剖' },
         title: { en: 'Roadmap', zh: '路线图' },
-        subtitle: { en: 'What we are building next', zh: '接下来要做的事' },
+        subtitle: { en: 'What the app has, and what comes next', zh: '已经有的，和接下来要做的' },
 
+        // What already ships. Keep it true: only what a user can open in the app today.
         today: {
           title: { en: 'In the app today', zh: '现在已有' },
-          items: [
-            { en: 'Arm and hand', zh: '手臂和手' },
-            { en: 'Leg and foot', zh: '腿和脚' },
-            { en: 'Torso, front and back', zh: '躯干正面与背面' },
-            { en: 'Sculpted bones', zh: '雕刻的骨骼' },
-            { en: 'Full-body poses (male)', zh: '全身姿势（男性）' },
-            { en: 'Plaster-cast lighting', zh: '石膏像光照' },
+          stats: [
+            { n: '5', label: { en: 'body parts', zh: '个身体部位' } },
+            { n: '40', label: { en: 'muscle blocks', zh: '块肌肉' } },
+            { n: '5', label: { en: 'classic poses', zh: '个经典姿势' } },
+          ],
+          groups: [
+            {
+              icon: '🦴',
+              title: { en: 'Body parts', zh: '身体部位' },
+              items: [
+                { en: 'Arm', zh: '手臂', sub: { en: 'upper arm · forearm', zh: '上臂 · 前臂' } },
+                { en: 'Hand and foot', zh: '手和脚' },
+                { en: 'Leg', zh: '腿', sub: { en: 'thigh · lower leg', zh: '大腿 · 小腿' } },
+                { en: 'Torso', zh: '躯干', sub: { en: 'front · back', zh: '正面 · 背面' } },
+                { en: 'Sculpted bones inside', zh: '里面有雕刻的骨骼' },
+              ],
+            },
+            {
+              icon: '🕺',
+              title: { en: 'Move and pose', zh: '动作与姿势' },
+              items: [
+                { en: 'Sliders for every joint', zh: '每个关节都有滑块' },
+                { en: 'One-tap poses, like Flex!', zh: '一键姿势，比如“秀肌肉！”' },
+                {
+                  en: 'Full male figure',
+                  zh: '男性全身人体',
+                  sub: {
+                    en: 'Contrapposto · The Thinker · Discus thrower · Spear thrower · Double biceps',
+                    zh: '对立式平衡 · 思想者 · 掷铁饼者 · 投矛者 · 双肱二头肌',
+                  },
+                },
+                { en: 'Left or right · male or female', zh: '左或右 · 男或女' },
+              ],
+            },
+            {
+              icon: '📖',
+              title: { en: 'Study', zh: '学习' },
+              items: [
+                {
+                  en: 'Muscle notes',
+                  zh: '肌肉说明',
+                  sub: { en: 'where it runs · how to draw it · what to watch', zh: '位置 · 怎么画 · 观察什么' },
+                },
+                {
+                  en: 'Show or hide',
+                  zh: '显示 / 隐藏',
+                  sub: { en: 'muscles · bones · guide lines · labels · neighbours', zh: '肌肉 · 骨架 · 辅助线 · 标签 · 相邻肌肉' },
+                },
+                { en: 'A link for every part', zh: '每个部位都有链接' },
+              ],
+            },
+            {
+              icon: '💡',
+              title: { en: 'View and light', zh: '视角与光线' },
+              items: [
+                { en: 'Spin, pan and zoom', zh: '旋转、平移、缩放' },
+                { en: 'View gizmo', zh: '视图球', sub: { en: 'any side · tilt the picture', zh: '任意一面 · 倾斜画面' } },
+                { en: 'Plaster-cast light', zh: '石膏像光线', sub: { en: 'Top · Side · Rim · lock light', zh: '顶光 · 侧光 · 轮廓光 · 锁定光线' } },
+                { en: 'Phones and tablets too', zh: '手机和平板也能用' },
+              ],
+            },
           ],
         },
+
+        next: { en: 'Coming next', zh: '接下来' },
 
         plans: [
           {
@@ -243,6 +320,14 @@
           </g>
         </svg>`
 
+      const group = (g) => `
+        <div class="group">
+          <h3><span>${g.icon}</span>${tx(g.title)}</h3>
+          <ul>${g.items
+            .map((x) => `<li><span class="tick">✓</span><div>${tx(x)}${x.sub ? `<small>${tx(x.sub)}</small>` : ''}</div></li>`)
+            .join('')}</ul>
+        </div>`
+
       const plan = (s) => `
         <section class="plan" style="--c:${s.color}">
           <article class="card">
@@ -269,11 +354,17 @@
           <p class="subtitle">${tx(ROADMAP.subtitle)}</p>
         </header>
         <main>
-          <aside class="today">
-            <h2>${tx(ROADMAP.today.title)}</h2>
-            <ul>${ROADMAP.today.items.map((x) => `<li><span class="tick">✓</span>${tx(x)}</li>`).join('')}</ul>
-          </aside>
-          <div class="plans">${ROADMAP.plans.map(plan).join('')}</div>
+          <section class="today">
+            <div class="today-head">
+              <h2>${tx(ROADMAP.today.title)}</h2>
+              <div class="stats">${ROADMAP.today.stats.map((x) => `<div class="stat"><b>${x.n}</b><span>${tx(x.label)}</span></div>`).join('')}</div>
+            </div>
+            <div class="groups">${ROADMAP.today.groups.map(group).join('')}</div>
+          </section>
+          <section class="next">
+            <h2>${tx(ROADMAP.next)}</h2>
+            <div class="plans">${ROADMAP.plans.map(plan).join('')}</div>
+          </section>
         </main>
         <footer><span>${tx(ROADMAP.footer.left)}</span><span>${tx(ROADMAP.footer.right)}</span></footer>`
     </script>
