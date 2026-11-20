@@ -41,11 +41,11 @@
         -webkit-font-smoothing: antialiased;
       }
 
-      /* The board is exactly what the screenshot captures: 1200 × 600 (2:1). */
+      /* The board is exactly what the screenshot captures: 1200 × 560. */
       .board {
         position: relative;
         width: 1200px;
-        height: 600px;
+        height: 560px;
         padding: 44px 48px 36px;
         display: flex;
         flex-direction: column;
@@ -94,43 +94,11 @@
         display: grid; place-items: center; font-size: 13px; font-weight: 800;
       }
 
-      /* ── The road ── */
-      .road { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
-      .road::before {
-        /* the dashed path the three stops sit on */
-        content: '';
-        position: absolute;
-        left: -28px; right: 40px; top: 21px;
-        border-top: 3px dashed var(--ink);
-        opacity: 0.35;
-      }
-      .road::after {
-        content: '';
-        position: absolute;
-        right: 26px; top: 14px;
-        border: 9px solid transparent;
-        border-left: 14px solid var(--ink);
-        opacity: 0.35;
-      }
-      .stop { position: relative; display: flex; flex-direction: column; min-height: 0; }
-      .pin { display: flex; align-items: center; gap: 10px; height: 45px; }
-      .pin b {
-        width: 45px; height: 45px; border-radius: 13px;
-        border: 2.6px solid var(--ink);
-        background: var(--c);
-        display: grid; place-items: center;
-        font: 600 22px/1 var(--display);
-        transform: rotate(var(--tilt));
-        box-shadow: 3px 3px 0 var(--ink);
-      }
-      .pin span {
-        font: 600 14px/1 var(--display);
-        letter-spacing: 0.08em; text-transform: uppercase;
-        background: var(--paper); padding: 4px 8px 4px 2px;
-      }
+      /* ── What we plan to build: a plain list of cards, in no particular order ── */
+      .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+      .plan { display: flex; flex-direction: column; min-height: 0; }
 
       .card {
-        margin-top: 16px;
         flex: 1;
         background: var(--card);
         border: 2.6px solid var(--ink);
@@ -186,7 +154,7 @@
 
     <script>
       /*
-       * The roadmap. Each stop is a real feature we plan to build, in the order we plan to build it.
+       * The roadmap. Each card is a real feature we plan to build. It is a list, not steps: no numbers, no order.
        * Every string has an English and a Chinese version: { en, zh }.
        */
       const ROADMAP = {
@@ -206,11 +174,9 @@
           ],
         },
 
-        stops: [
+        plans: [
           {
             color: 'var(--pink)',
-            tilt: '-6deg',
-            when: { en: 'Next', zh: '下一步' },
             icon: '🗿',
             title: { en: 'A new head', zh: '全新的头部' },
             text: {
@@ -224,8 +190,6 @@
           },
           {
             color: 'var(--blue)',
-            tilt: '5deg',
-            when: { en: 'Then', zh: '然后' },
             icon: '🚺',
             title: { en: 'The female body', zh: '女性身体' },
             text: {
@@ -240,8 +204,6 @@
           },
           {
             color: 'var(--green)',
-            tilt: '-4deg',
-            when: { en: 'Later', zh: '之后' },
             icon: '🔍',
             title: { en: 'Sharper anatomy', zh: '更清晰的解剖' },
             text: {
@@ -281,9 +243,8 @@
           </g>
         </svg>`
 
-      const stop = (s, i) => `
-        <section class="stop" style="--c:${s.color};--tilt:${s.tilt}">
-          <div class="pin"><b>${i + 1}</b><span>${tx(s.when)}</span></div>
+      const plan = (s) => `
+        <section class="plan" style="--c:${s.color}">
           <article class="card">
             <div class="band"></div>
             <div class="body">
@@ -312,7 +273,7 @@
             <h2>${tx(ROADMAP.today.title)}</h2>
             <ul>${ROADMAP.today.items.map((x) => `<li><span class="tick">✓</span>${tx(x)}</li>`).join('')}</ul>
           </aside>
-          <div class="road">${ROADMAP.stops.map(stop).join('')}</div>
+          <div class="plans">${ROADMAP.plans.map(plan).join('')}</div>
         </main>
         <footer><span>${tx(ROADMAP.footer.left)}</span><span>${tx(ROADMAP.footer.right)}</span></footer>`
     </script>
