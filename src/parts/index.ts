@@ -35,6 +35,19 @@ export function getRig(id: string, body: Body): RigDef {
 
 export const LESSONS: LessonDef[] = [...armLessons, ...handLessons, ...legLessons, ...footLessons, ...torsoLessons]
 
+/**
+ * The side panel: one button per body part, opening its whole-part lesson, with the
+ * close-ups as smaller sub-options under it. Hand and foot stand on their own. The torso has no whole lesson, so its
+ * button opens the front and its two sides are the sub-options.
+ */
+export const NAV: { main: string; subs: string[] }[] = [
+  { main: 'arm', subs: ['upper-arm', 'forearm'] },
+  { main: 'hand', subs: [] },
+  { main: 'leg', subs: ['thigh', 'lower-leg'] },
+  { main: 'foot', subs: [] },
+  { main: 'torso-front', subs: ['torso-front', 'torso-back'] },
+]
+
 export function defaultPose(rig: RigDef): Pose {
   const pose: Pose = {}
   for (const c of rig.controls) pose[c.id] = c.def
