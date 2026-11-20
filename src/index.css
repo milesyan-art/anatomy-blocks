@@ -386,6 +386,8 @@ input:focus-visible {
   position: relative;
   flex: none;
   display: flex;
+  /* the bar it sits in lets clicks through to the model; the pill takes its own */
+  pointer-events: auto;
   align-items: center;
 }
 
