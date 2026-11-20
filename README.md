@@ -106,6 +106,12 @@ Each link opens that part straight away.
 
 <br />
 
+## 🗺️ Roadmap
+
+<img src="docs/images/roadmap.png" width="860" alt="Roadmap: next, a new head; then, the female body with its own bones and muscles; later, every part rebuilt so the blocks are sharper and easier to understand" />
+
+<br />
+
 ## 🙋 Questions
 
 <details>

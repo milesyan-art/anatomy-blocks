@@ -1,0 +1,320 @@
+<!doctype html>
+<!--
+  The roadmap picture in the README is a screenshot of this page.
+
+  To change the roadmap, edit ROADMAP below, then run `npm run roadmap`.
+  It saves docs/images/roadmap.png (English) and docs/images/roadmap.zh-CN.png.
+  To look at it while you edit: `npm run dev`, then open /docs/roadmap.html
+  (add ?lang=zh for Chinese).
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1200" />
+    <link rel="icon" type="image/svg+xml" href="../public/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <title>Block Anatomy Roadmap</title>
+    <style>
+      :root {
+        --paper: #e7e6e1;
+        --card: #fdfcf7;
+        --ink: #1f2a5c;
+        --ink-soft: #5d668c;
+        --line: #cfcbc3;
+        --pink: #f0719f;
+        --blue: #6fb8ec;
+        --green: #a9dd78;
+        --sun: #ffd84d;
+        --cjk: 'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei';
+        --display: 'Fredoka', 'Nunito', var(--cjk), system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; background: var(--paper); }
+      body {
+        font-family: 'Nunito', var(--cjk), system-ui, sans-serif;
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* The board is exactly what the screenshot captures: 1200 × 600 (2:1). */
+      .board {
+        position: relative;
+        width: 1200px;
+        height: 600px;
+        padding: 44px 48px 36px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background:
+          radial-gradient(circle at 1px 1px, rgba(31, 42, 92, 0.09) 1px, transparent 0) 0 0 / 22px 22px,
+          var(--paper);
+      }
+
+      header { display: flex; align-items: flex-end; justify-content: space-between; }
+      .brand { display: flex; align-items: center; gap: 18px; }
+      .brand svg { width: 64px; height: 64px; flex: none; }
+      .kicker {
+        font: 600 15px/1 var(--display);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+      }
+      h1 { margin: 6px 0 0; font: 600 44px/1 var(--display); }
+      .subtitle { margin: 0 0 4px; font-size: 17px; color: var(--ink-soft); font-weight: 600; }
+
+      main {
+        flex: 1;
+        margin-top: 28px;
+        display: grid;
+        grid-template-columns: 236px 1fr;
+        gap: 28px;
+        min-height: 0;
+      }
+
+      /* ── Today: what already ships ── */
+      .today {
+        border: 2.5px dashed var(--line);
+        border-radius: 20px;
+        padding: 20px 20px 18px;
+        background: rgba(253, 252, 247, 0.55);
+        display: flex;
+        flex-direction: column;
+      }
+      .today h2 { margin: 0 0 14px; font: 600 20px/1 var(--display); color: var(--ink-soft); }
+      .today ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 11px; }
+      .today li { display: flex; gap: 10px; align-items: center; font-size: 15px; font-weight: 700; color: var(--ink-soft); }
+      .tick {
+        flex: none; width: 20px; height: 20px; border-radius: 6px;
+        background: var(--ink-soft); color: var(--card);
+        display: grid; place-items: center; font-size: 13px; font-weight: 800;
+      }
+
+      /* ── The road ── */
+      .road { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+      .road::before {
+        /* the dashed path the three stops sit on */
+        content: '';
+        position: absolute;
+        left: -28px; right: 40px; top: 21px;
+        border-top: 3px dashed var(--ink);
+        opacity: 0.35;
+      }
+      .road::after {
+        content: '';
+        position: absolute;
+        right: 26px; top: 14px;
+        border: 9px solid transparent;
+        border-left: 14px solid var(--ink);
+        opacity: 0.35;
+      }
+      .stop { position: relative; display: flex; flex-direction: column; min-height: 0; }
+      .pin { display: flex; align-items: center; gap: 10px; height: 45px; }
+      .pin b {
+        width: 45px; height: 45px; border-radius: 13px;
+        border: 2.6px solid var(--ink);
+        background: var(--c);
+        display: grid; place-items: center;
+        font: 600 22px/1 var(--display);
+        transform: rotate(var(--tilt));
+        box-shadow: 3px 3px 0 var(--ink);
+      }
+      .pin span {
+        font: 600 14px/1 var(--display);
+        letter-spacing: 0.08em; text-transform: uppercase;
+        background: var(--paper); padding: 4px 8px 4px 2px;
+      }
+
+      .card {
+        margin-top: 16px;
+        flex: 1;
+        background: var(--card);
+        border: 2.6px solid var(--ink);
+        border-radius: 20px;
+        box-shadow: 5px 5px 0 var(--ink);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .card .band {
+        height: 14px;
+        background: var(--c);
+        border-bottom: 2.6px solid var(--ink);
+      }
+      .card .body { padding: 18px 20px 20px; display: flex; flex-direction: column; flex: 1; }
+      .card h3 { margin: 0; font: 600 26px/1.1 var(--display); display: flex; align-items: center; gap: 10px; }
+      .card h3 .icon { font-size: 26px; }
+      .card p { margin: 10px 0 0; font-size: 15.5px; line-height: 1.45; color: var(--ink-soft); font-weight: 600; }
+      .card ul { margin: 16px 0 0; padding: 0; list-style: none; display: grid; gap: 9px; }
+      .card li { display: flex; gap: 10px; font-size: 15px; line-height: 1.35; font-weight: 700; }
+      .card li::before {
+        content: '';
+        flex: none;
+        width: 12px; height: 12px; margin-top: 4px;
+        border-radius: 4px;
+        border: 2px solid var(--ink);
+        background: var(--c);
+      }
+      .chips { margin-top: auto; padding-top: 16px; display: flex; flex-wrap: wrap; gap: 7px; }
+      .chips span {
+        font-size: 13.5px; font-weight: 800;
+        padding: 4px 11px;
+        border-radius: 999px;
+        border: 2px solid var(--ink);
+        background: color-mix(in srgb, var(--c) 35%, var(--card));
+      }
+      .note {
+        margin-top: auto; padding-top: 14px;
+        font-size: 13.5px; font-weight: 700; color: var(--ink-soft);
+        font-style: italic;
+      }
+      .chips + .note { margin-top: 0; padding-top: 10px; }
+
+      footer {
+        margin-top: 22px;
+        display: flex; justify-content: space-between;
+        font-size: 13.5px; font-weight: 700; color: var(--ink-soft);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="board" id="board"></div>
+
+    <script>
+      /*
+       * The roadmap. Each stop is a real feature we plan to build, in the order we plan to build it.
+       * Every string has an English and a Chinese version: { en, zh }.
+       */
+      const ROADMAP = {
+        kicker: { en: 'Block Anatomy', zh: 'Block Anatomy 方块解剖' },
+        title: { en: 'Roadmap', zh: '路线图' },
+        subtitle: { en: 'What we are building next', zh: '接下来要做的事' },
+
+        today: {
+          title: { en: 'In the app today', zh: '现在已有' },
+          items: [
+            { en: 'Arm and hand', zh: '手臂和手' },
+            { en: 'Leg and foot', zh: '腿和脚' },
+            { en: 'Torso, front and back', zh: '躯干正面与背面' },
+            { en: 'Sculpted bones', zh: '雕刻的骨骼' },
+            { en: 'Full-body poses (male)', zh: '全身姿势（男性）' },
+            { en: 'Plaster-cast lighting', zh: '石膏像光照' },
+          ],
+        },
+
+        stops: [
+          {
+            color: 'var(--pink)',
+            tilt: '-6deg',
+            when: { en: 'Next', zh: '下一步' },
+            icon: '🗿',
+            title: { en: 'A new head', zh: '全新的头部' },
+            text: {
+              en: 'A new head for the figure, built the same block way as the rest of the body.',
+              zh: '给人体换一个新的头部，和身体其他部分一样用方块来搭。',
+            },
+            items: [
+              { en: 'Skull, jaw and face as clear blocks', zh: '颅骨、下颌和面部各自成块' },
+              { en: 'Draw the head from any angle', zh: '从任何角度练习画头' },
+            ],
+          },
+          {
+            color: 'var(--blue)',
+            tilt: '5deg',
+            when: { en: 'Then', zh: '然后' },
+            icon: '🚺',
+            title: { en: 'The female body', zh: '女性身体' },
+            text: {
+              en: 'Her own bones and muscles, not the male body reshaped.',
+              zh: '女性自己的骨骼和肌肉，而不是把男性身体改一改。',
+            },
+            items: [
+              { en: 'Female bones: wider pelvis, smaller rib cage', zh: '女性骨骼：更宽的骨盆，更小的胸廓' },
+              { en: 'Female muscle blocks on every part', zh: '每个部位都有女性肌肉块' },
+              { en: 'A full-body female figure with the same poses', zh: '全身女性人体，同样的姿势' },
+            ],
+          },
+          {
+            color: 'var(--green)',
+            tilt: '-4deg',
+            when: { en: 'Later', zh: '之后' },
+            icon: '🔍',
+            title: { en: 'Sharper anatomy', zh: '更清晰的解剖' },
+            text: {
+              en: 'Rebuild every part, one at a time, so each block is cleaner and easier to read.',
+              zh: '一个部位一个部位地重做，让每个块更干净、更好懂。',
+            },
+            chips: [
+              { en: 'Arm', zh: '手臂' },
+              { en: 'Hand', zh: '手' },
+              { en: 'Torso', zh: '躯干' },
+              { en: 'Leg', zh: '腿' },
+              { en: 'Foot', zh: '脚' },
+            ],
+            note: { en: 'Not more medical. Easier to understand.', zh: '不是更医学，而是更好懂。' },
+          },
+        ],
+
+        footer: {
+          left: { en: 'anatomy-blocks.vercel.app', zh: 'anatomy-blocks.vercel.app' },
+          right: { en: 'Made for people who love to draw', zh: '为爱画画的人而做' },
+        },
+      }
+
+      // ── render ──
+      const lang = new URLSearchParams(location.search).get('lang') === 'zh' ? 'zh' : 'en'
+      document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en'
+      const t = (s) => s[lang]
+      const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c])
+      const tx = (s) => esc(t(s))
+
+      const logo = `
+        <svg viewBox="0 0 48 48" aria-hidden="true">
+          <g stroke="#1f2a5c" stroke-width="2.6" stroke-linejoin="round">
+            <rect x="15" y="5" width="20" height="13" rx="4" fill="#f0719f" transform="rotate(-8 25 11)"/>
+            <rect x="12" y="17.5" width="20" height="13" rx="4" fill="#6fb8ec" transform="rotate(6 22 24)"/>
+            <rect x="16" y="30" width="20" height="13" rx="4" fill="#a9dd78" transform="rotate(-5 26 36)"/>
+          </g>
+        </svg>`
+
+      const stop = (s, i) => `
+        <section class="stop" style="--c:${s.color};--tilt:${s.tilt}">
+          <div class="pin"><b>${i + 1}</b><span>${tx(s.when)}</span></div>
+          <article class="card">
+            <div class="band"></div>
+            <div class="body">
+              <h3><span class="icon">${s.icon}</span>${tx(s.title)}</h3>
+              <p>${tx(s.text)}</p>
+              ${s.items ? `<ul>${s.items.map((x) => `<li>${tx(x)}</li>`).join('')}</ul>` : ''}
+              ${s.chips ? `<div class="chips">${s.chips.map((x) => `<span>${tx(x)}</span>`).join('')}</div>` : ''}
+              ${s.note ? `<div class="note">${tx(s.note)}</div>` : ''}
+            </div>
+          </article>
+        </section>`
+
+      document.getElementById('board').innerHTML = `
+        <header>
+          <div class="brand">
+            ${logo}
+            <div>
+              <div class="kicker">${tx(ROADMAP.kicker)}</div>
+              <h1>${tx(ROADMAP.title)}</h1>
+            </div>
+          </div>
+          <p class="subtitle">${tx(ROADMAP.subtitle)}</p>
+        </header>
+        <main>
+          <aside class="today">
+            <h2>${tx(ROADMAP.today.title)}</h2>
+            <ul>${ROADMAP.today.items.map((x) => `<li><span class="tick">✓</span>${tx(x)}</li>`).join('')}</ul>
+          </aside>
+          <div class="road">${ROADMAP.stops.map(stop).join('')}</div>
+        </main>
+        <footer><span>${tx(ROADMAP.footer.left)}</span><span>${tx(ROADMAP.footer.right)}</span></footer>`
+    </script>
+  </body>
+</html>
