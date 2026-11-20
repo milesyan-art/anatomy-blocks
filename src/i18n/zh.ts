@@ -77,7 +77,7 @@ const ui: UiText = {
   where: '位置',
   drawItAs: '怎么画',
   watch: '观察',
-  sections: { Arm: '手臂', Leg: '腿', Torso: '躯干' },
+  sections: { Arm: '手臂', Leg: '腿', Torso: '躯干', Poses: '姿势' },
   lightPresets: { 'Top left': '左上', Top: '顶光', Front: '正面光', Side: '侧光', Below: '底光', Rim: '轮廓光' },
   sides: {
     Front: '正面',
@@ -550,5 +550,94 @@ const content: Content = {
     },
   },
 }
+
+/*
+ * The posed figure is made of the other models' blocks, so its blocks keep their
+ * names; only its own sliders and the poses need words.
+ */
+const { torso, leg, foot, hand } = content.rigs
+const { achilles: _achilles, tendons: toeTendons, ...footGroups } = foot.groups
+const { tendons: fingerTendons, ...handGroups } = hand.groups
+content.rigs.figure = {
+  controls: {
+    bend: torso.controls.bend,
+    lean: torso.controls.lean,
+    twist: torso.controls.twist,
+    headTurn: { label: '转头', lo: '◀', hi: '▶' },
+  },
+  presets: {},
+  groups: {
+    ...torso.groups,
+    ...leg.groups,
+    ...footGroups,
+    'toe-tendons': toeTendons,
+    ...handGroups,
+    'finger-tendons': fingerTendons,
+  },
+}
+
+Object.assign(content.lessons, {
+  figure: {
+    title: '站立的全身',
+    short: '站立',
+    blurb: '这个网站里的每一块，都装在同一个身体上。在下面选一个姿势，看同样的体块怎样撑起它。',
+    tips: [
+      '身体是三大块：头、胸廓、髋部，由脖子和腰连起来。',
+      '手臂垂下时到大腿中部；手肘和腰在同一高度。',
+      '把它当作参照：每个姿势里，问问自己三大块中哪一块动了。',
+    ],
+  },
+  'pose-contrapposto': {
+    title: '对立式平衡',
+    short: '对立式平衡',
+    blurb: '全部重量压在一条腿上。这一侧的髋部上抬，另一侧下沉；肩膀反方向倾斜，让头保持在支撑脚的上方。',
+    tips: [
+      '先画髋部连线和肩膀连线：它们在承重的一侧彼此靠拢。',
+      '承重腿是直的，位于颈窝的正下方。',
+      '放松的那条腿弯曲，它的膝盖比另一侧低。',
+      '承重一侧的腰被挤压，放松一侧被拉长。',
+    ],
+  },
+  'pose-thinker': {
+    title: '思想者',
+    short: '思想者',
+    blurb: '坐着并向前折叠：胸廓向前倾到髋部上方，同时扭转，让右手肘落在左膝上。',
+    tips: [
+      '从侧面看：背部是从髋部到头的一条长弧线。',
+      '扭转发生在腰部——髋部朝前，胸部转开。',
+      '大腿是水平的，从正面看会被透视缩短；膝盖和脚承担重量。',
+    ],
+  },
+  'pose-discus': {
+    title: '掷铁饼者',
+    short: '掷铁饼者',
+    blurb: '出手前上紧的弹簧：髋部朝一个方向，胸部朝另一个方向，投掷的手臂高高甩到身后。',
+    tips: [
+      '找出两个盒子：髋部朝左前方，胸廓被拧向右边。',
+      '两条手臂穿过肩膀连成一条长弧线，像一张弓。',
+      '重量在弯曲的右腿上；左腿用脚尖拖在后面。',
+    ],
+  },
+  'pose-spear': {
+    title: '投矛者',
+    short: '投矛者',
+    blurb: '宽而稳的站姿，双臂水平展开，出手前顺着前臂瞄准。',
+    tips: [
+      '两条手臂穿过肩膀连成一条直线；胸部在两臂之间保持方正。',
+      '重量在两脚之间——身体向前推时，后脚跟抬起。',
+      '头转过去顺着前臂看：注意胸锁乳突肌鼓起来。',
+    ],
+  },
+  'pose-biceps': {
+    title: '双肱二头肌',
+    short: '双肱二头肌',
+    blurb: '上臂水平展开，前臂竖起，拳头握紧：手臂和肩膀的每一块都挤到眼前。',
+    tips: [
+      '上臂向外转，前臂才能竖起来——二头肌朝向天空。',
+      '手臂抬起时，背阔肌在腋下张开，胸肌被拉宽。',
+      '三角肌像一个球盖在肩上；三头肌挂在下面。',
+    ],
+  },
+})
 
 export const zh = { ui, content }

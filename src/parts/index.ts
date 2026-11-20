@@ -2,6 +2,7 @@ import type { LessonDef, Pose, RigDef } from '../engine/types'
 import { ARM_MID_X, armLessons, armRig } from './arm'
 import { slim } from './body'
 import type { Body } from './body'
+import { figureLessons, figureRig } from './figure'
 import { footLessons, footRig } from './foot'
 import { handLessons, handRig } from './hand'
 import { legLessons, legRig } from './leg'
@@ -16,6 +17,7 @@ const RIGS: Record<Body, Record<string, RigDef>> = {
     leg: legRig,
     foot: footRig,
     torso: torsoRig,
+    figure: figureRig,
   },
   female: {
     // narrower shoulders, so the midline is closer
@@ -24,6 +26,8 @@ const RIGS: Record<Body, Record<string, RigDef>> = {
     leg: slim(legRig, 0.9),
     foot: slim(footRig, 0.92, 0.92),
     torso: torsoRigFemale,
+    // the posed figure is built on the male skeleton only, for now
+    figure: figureRig,
   },
 }
 
@@ -33,7 +37,7 @@ export function getRig(id: string, body: Body): RigDef {
   return RIGS[body][id]
 }
 
-export const LESSONS: LessonDef[] = [...armLessons, ...handLessons, ...legLessons, ...footLessons, ...torsoLessons]
+export const LESSONS: LessonDef[] = [...armLessons, ...handLessons, ...legLessons, ...footLessons, ...torsoLessons, ...figureLessons]
 
 /**
  * The side panel: one button per body part, opening its whole-part lesson, with the
@@ -46,6 +50,7 @@ export const NAV: { main: string; subs: string[] }[] = [
   { main: 'leg', subs: ['thigh', 'lower-leg'] },
   { main: 'foot', subs: [] },
   { main: 'torso-front', subs: ['torso-front', 'torso-back'] },
+  { main: 'figure', subs: figureLessons.filter((l) => l.id !== 'figure').map((l) => l.id) },
 ]
 
 export function defaultPose(rig: RigDef): Pose {
