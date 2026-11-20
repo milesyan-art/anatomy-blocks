@@ -28,7 +28,7 @@ for (const { query, out } of shots) {
   execFileSync(chrome, [
     '--headless',
     '--hide-scrollbars',
-    '--window-size=1200,560', // the board's size; 2× below makes a sharp 2400 × 1120 PNG
+    '--window-size=1200,860', // the board's size; 2× below makes a sharp 2400 × 1720 PNG
     '--force-device-scale-factor=2',
     '--virtual-time-budget=4000', // give the web fonts time to load
     `--screenshot=${resolve(out)}`,
