@@ -167,6 +167,8 @@ export interface ControlDef {
   /** Captions for the two ends of the slider. */
   lo: string
   hi: string
+  /** Set only by presets (the full figure has too many joints to list). */
+  hidden?: boolean
 }
 
 export interface PresetDef {
@@ -241,4 +243,8 @@ export interface LessonDef {
   otherSide?: string
   /** Names for the four view buttons: az 0, 90, 180, -90. */
   sides?: [string, string, string, string]
+  /** The pose the model glides into when the lesson opens. */
+  pose?: Pose
+  /** The groups that get a label on the model, when not all of `show` should. */
+  labels?: string[]
 }

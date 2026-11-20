@@ -69,7 +69,9 @@ export function Viewer(props: ViewerProps) {
   const { rig, lesson, options, focus, onSelect } = props
   const store = useMemo(() => createLabelStore(), [])
   const viewStore = useMemo(() => createViewStore(), [])
-  const shown = rig.groups.filter((g) => lesson.show.includes(g.id))
+  // the whole figure has too many blocks to label them all
+  const labelled = lesson.labels ?? lesson.show
+  const shown = rig.groups.filter((g) => labelled.includes(g.id))
 
   return (
     <div className="stage-canvas">
@@ -571,7 +573,7 @@ function RigModel({
   // tell the label layer where to point
   useLayoutEffect(() => {
     store.anchors.clear()
-    for (const id of lesson.show) {
+    for (const id of lesson.labels ?? lesson.show) {
       const all = sweeps.filter((s) => s.def.group === id)
       const muscles = all.filter((s) => s.def.kind === 'muscle')
       const mine = muscles.length ? muscles : all

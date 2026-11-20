@@ -25,9 +25,9 @@ export const ELBOW_Y = -3
 /** The forearm's slight outward angle at the elbow (carrying angle). */
 export const CARRY = 6 * DEG
 // The forearm twists around a line from the radius head (elbow) to the ulna head (wrist).
-const RADIUS_HEAD = new Vector3(0.21, -0.08, 0.02)
+export const RADIUS_HEAD = new Vector3(0.21, -0.08, 0.02)
 const ULNA_HEAD = new Vector3(-0.2, -2.48, 0)
-const TWIST_AXIS = ULNA_HEAD.clone().sub(RADIUS_HEAD).normalize()
+export const TWIST_AXIS = ULNA_HEAD.clone().sub(RADIUS_HEAD).normalize()
 const IDENTITY = new Matrix4()
 
 /** From the torso's space to this rig's, where the shoulder joint is the origin. */

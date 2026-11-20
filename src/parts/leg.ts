@@ -21,7 +21,7 @@ import { PELVIS, bladePoint, crestHeight, pelvisBlocks } from './pelvis'
  */
 
 /** How far the hip joint sits from the body's midline. */
-const HIP_X = 0.85
+export const HIP_X = 0.85
 const IDENTITY = new Matrix4()
 /** How many degrees the knee bends for each degree the leg is raised. */
 const KNEE_PER_HIP = 1

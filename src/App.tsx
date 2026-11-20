@@ -46,10 +46,39 @@ export default function App() {
     rememberLang(next)
   }
 
-  const [poses, setPoses] = useState<Record<string, Pose>>(() =>
-    Object.fromEntries(RIG_IDS.map((id) => [id, defaultPose(getRig(id, 'male'))])),
-  )
+  const [poses, setPoses] = useState<Record<string, Pose>>(() => {
+    const all: Record<string, Pose> = Object.fromEntries(RIG_IDS.map((id) => [id, defaultPose(getRig(id, 'male'))]))
+    // a pose lesson opened from a link starts in its pose
+    const first = LESSONS.find((l) => l.id === lessonId)
+    if (first?.pose) all[first.rig] = { ...all[first.rig], ...first.pose }
+    return all
+  })
   const pose = poses[rig.id]
+  const posesRef = useRef(poses)
+  useEffect(() => {
+    posesRef.current = poses
+  }, [poses])
+
+  // ── pose: sliders set it directly, presets and pose lessons glide to it ──
+  const raf = useRef(0)
+  const stopGlide = () => cancelAnimationFrame(raf.current)
+  useEffect(() => stopGlide, [])
+
+  const glide = useCallback((rigId: string, target: Pose) => {
+    cancelAnimationFrame(raf.current)
+    const from = { ...posesRef.current[rigId] }
+    const to = { ...from, ...target }
+    const t0 = performance.now()
+    const step = () => {
+      const t = Math.min(1, (performance.now() - t0) / 650)
+      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+      const next: Pose = {}
+      for (const k of Object.keys(to)) next[k] = from[k] + (to[k] - from[k]) * e
+      setPoses((all) => ({ ...all, [rigId]: next }))
+      if (t < 1) raf.current = requestAnimationFrame(step)
+    }
+    raf.current = requestAnimationFrame(step)
+  }, [])
 
   const [selected, setSelected] = useState<string | null>(null)
   const [hovered, setHovered] = useState<string | null>(null)
@@ -64,6 +93,7 @@ export default function App() {
   const [view, setView] = useState<{ def: ViewDef; nonce: number }>({ def: lesson.view, nonce: 0 })
 
   const pickLesson = useCallback((l: LessonDef) => {
+    if (l.pose) glide(l.rig, l.pose)
     setLessonId(l.id)
     setSelected(null)
     setHovered(null)
@@ -71,7 +101,7 @@ export default function App() {
     // a new lesson starts level
     setView((v) => ({ def: { ...l.view, roll: 0 }, nonce: v.nonce + 1 }))
     window.history.replaceState(null, '', `#${l.id}`)
-  }, [])
+  }, [glide])
 
   /*
    * A lesson can have a partner that covers the other side of the same model (torso
@@ -98,11 +128,6 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [lessonId, pickLesson])
 
-  // ── pose: sliders set it directly, presets glide to it ──
-  const raf = useRef(0)
-  const stopGlide = () => cancelAnimationFrame(raf.current)
-  useEffect(() => stopGlide, [])
-
   const setControl = (id: string, value: number) => {
     stopGlide()
     setPoses((all) => {
@@ -111,21 +136,7 @@ export default function App() {
     })
   }
 
-  const glideTo = (target: Pose) => {
-    stopGlide()
-    const from = { ...pose }
-    const to = { ...pose, ...target }
-    const t0 = performance.now()
-    const step = () => {
-      const t = Math.min(1, (performance.now() - t0) / 650)
-      const e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
-      const next: Pose = {}
-      for (const k of Object.keys(to)) next[k] = from[k] + (to[k] - from[k]) * e
-      setPoses((all) => ({ ...all, [rig.id]: next }))
-      if (t < 1) raf.current = requestAnimationFrame(step)
-    }
-    raf.current = requestAnimationFrame(step)
-  }
+  const glideTo = (target: Pose) => glide(rig.id, target)
 
   const lookFrom = (az: number) =>
     setView((v) => ({ def: { ...lesson.view, az, el: 4 }, nonce: v.nonce + 1 }))
@@ -385,7 +396,7 @@ function MoveCard({
   return (
     <div className="card move">
       <h3>{title}</h3>
-      {rig.controls.map((c) => {
+      {rig.controls.filter((c) => !c.hidden).map((c) => {
         const value = pose[c.id]
         const pct = ((value - c.min) / (c.max - c.min)) * 100
         return (
@@ -410,13 +421,15 @@ function MoveCard({
           </label>
         )
       })}
-      <div className="presets">
-        {rig.presets.map((p) => (
-          <button key={p.label} type="button" className="chip" onClick={() => onPreset(p.pose)}>
-            {p.label}
-          </button>
-        ))}
-      </div>
+      {rig.presets.length > 0 && (
+        <div className="presets">
+          {rig.presets.map((p) => (
+            <button key={p.label} type="button" className="chip" onClick={() => onPreset(p.pose)}>
+              {p.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
