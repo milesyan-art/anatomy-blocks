@@ -227,6 +227,8 @@ export interface LessonDef {
   rig: string
   section: string
   title: string
+  /** A shorter name for the side panel, where the part's name is already shown above it. */
+  short?: string
   blurb: string
   /** Muscle groups this lesson is about. */
   show: string[]

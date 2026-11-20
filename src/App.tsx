@@ -11,10 +11,9 @@ import type { LightSetting } from './engine/materials'
 import type { GroupDef, LessonDef, Pose, RigDef, ViewDef } from './engine/types'
 import { LANGS, UI, detectLang, localizeLesson, localizeRig, rememberLang } from './i18n'
 import type { Lang, UiText } from './i18n'
-import { LESSONS, RIG_IDS, defaultPose, getRig } from './parts'
+import { LESSONS, NAV, RIG_IDS, defaultPose, getRig } from './parts'
 import type { Body } from './parts'
 
-const SECTIONS = [...new Set(LESSONS.map((l) => l.section))]
 const SIDE_ANGLES = [0, 90, 180, -90]
 const DEFAULT_SIDES: NonNullable<LessonDef['sides']> = ['Front', 'Left', 'Back', 'Right']
 /** Degrees the camera must be nearer to the other lesson's view before the app follows it there. */
@@ -22,7 +21,7 @@ const FOLLOW_LEAD = 20
 
 function lessonFromHash(): string {
   const id = window.location.hash.replace('#', '')
-  return LESSONS.some((l) => l.id === id) ? id : LESSONS[0].id
+  return LESSONS.some((l) => l.id === id) ? id : NAV[0].main
 }
 
 export default function App() {
@@ -215,34 +214,44 @@ export default function App() {
             </button>
           ))}
         </div>
-        <label className="lang-pick">
-          <span className="sr-only">{tr.language}</span>
-          <select value={lang} onChange={(e) => pickLang(e.target.value as Lang)}>
-            {LANGS.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </label>
         <nav className="parts" aria-label={tr.bodyParts}>
-          {SECTIONS.map((section) => (
-            <div className="parts-group" key={section}>
-              <h2>{tr.sections[section] ?? section}</h2>
-              <div className="parts-list">
-                {lessons.filter((l) => l.section === section).map((l) => (
-                  <button
-                    key={l.id}
-                    type="button"
-                    className={`part${l.id === lesson.id ? ' is-on' : ''}`}
-                    onClick={() => pickLesson(l)}
-                  >
-                    {l.title}
-                  </button>
-                ))}
+          {NAV.map(({ main, subs }) => {
+            const head = lessons.find((l) => l.id === main)!
+            const inside = lesson.id === main || subs.includes(lesson.id)
+            // the head button is fully on only when no sub-option stands for the lesson
+            const headOn = lesson.id === main && !subs.includes(main)
+            return (
+              <div className="parts-group" key={main}>
+                <button
+                  type="button"
+                  className={`part${headOn ? ' is-on' : inside ? ' is-in' : ''}`}
+                  aria-current={headOn ? 'page' : undefined}
+                  onClick={() => pickLesson(head)}
+                >
+                  {subs.length ? (tr.sections[head.section] ?? head.section) : head.title}
+                </button>
+                {subs.length > 0 && (
+                  <div className="parts-sub">
+                    {subs.map((id) => {
+                      const l = lessons.find((x) => x.id === id)!
+                      const on = l.id === lesson.id
+                      return (
+                        <button
+                          key={id}
+                          type="button"
+                          className={`part-sub${on ? ' is-on' : ''}`}
+                          aria-current={on ? 'page' : undefined}
+                          onClick={() => pickLesson(l)}
+                        >
+                          {l.short ?? l.title}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </nav>
       </aside>
 
@@ -264,34 +273,51 @@ export default function App() {
           onHover={setHovered}
           onSelect={(g) => setSelected((cur) => (g === cur ? null : g))}
         />
-        <div className="stage-top">
-          <span className="stage-caption">{tr.lookFrom}</span>
+        <div className="stage-top" role="group" aria-label={tr.lookFrom}>
           {sides.map((name, i) => (
             <button key={name} type="button" className="chip" onClick={() => lookFrom(SIDE_ANGLES[i])}>
               {name}
             </button>
           ))}
         </div>
-        <div className="stage-bottom">
-          <Toggle on={options.muscles} onClick={() => toggle('muscles')}>
-            {tr.muscles}
-          </Toggle>
-          <Toggle on={options.bones} onClick={() => toggle('bones')}>
-            {tr.bones}
-          </Toggle>
-          <Toggle on={options.guides} onClick={() => toggle('guides')}>
-            {tr.guides}
-          </Toggle>
-          <Toggle on={options.labels} onClick={() => toggle('labels')}>
-            {tr.labels}
-          </Toggle>
-          {hasNeighbours && (
-            <Toggle on={options.neighbours} onClick={() => toggle('neighbours')}>
-              {tr.neighbours}
+        <div className="stage-bar">
+          <div className="stage-bottom">
+            <Toggle on={options.muscles} onClick={() => toggle('muscles')}>
+              {tr.muscles}
             </Toggle>
-          )}
+            <Toggle on={options.bones} onClick={() => toggle('bones')}>
+              {tr.bones}
+            </Toggle>
+            <Toggle on={options.guides} onClick={() => toggle('guides')}>
+              {tr.guides}
+            </Toggle>
+            <Toggle on={options.labels} onClick={() => toggle('labels')}>
+              {tr.labels}
+            </Toggle>
+            {hasNeighbours && (
+              <Toggle on={options.neighbours} onClick={() => toggle('neighbours')}>
+                {tr.neighbours}
+              </Toggle>
+            )}
+          </div>
+          <div className="stage-corner">
+            <p className="stage-hint">{tr.hint}</p>
+            <label className="lang-pick" title={tr.language}>
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <circle cx="8" cy="8" r="6.5" />
+                <path d="M1.5 8h13M8 1.5c-2.2 2.4-2.2 10.6 0 13M8 1.5c2.2 2.4 2.2 10.6 0 13" />
+              </svg>
+              <span className="sr-only">{tr.language}</span>
+              <select value={lang} onChange={(e) => pickLang(e.target.value as Lang)}>
+                {LANGS.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
-        <p className="stage-hint">{tr.hint}</p>
       </main>
 
       <section className="panel">

@@ -216,8 +216,9 @@ export function localizeLesson(lesson: LessonDef, lang: Lang): LessonDef {
   const t = CONTENT[lang]?.lessons[lesson.id]
   const ui = UI[lang]
   const sides = t?.sides ?? (lesson.sides?.map((s) => ui.sides[s] ?? s) as LessonDef['sides'])
-  if (!t) return { ...lesson, sides }
-  return { ...lesson, title: t.title, blurb: t.blurb, tips: t.tips, sides }
+  const short = lesson.short && (ui.sides[lesson.short] ?? lesson.short)
+  if (!t) return { ...lesson, sides, short }
+  return { ...lesson, title: t.title, blurb: t.blurb, tips: t.tips, sides, short }
 }
 
 export function localizeRig(rig: RigDef, lang: Lang): RigDef {
