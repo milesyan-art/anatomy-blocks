@@ -50,10 +50,10 @@ const skinOnPelvis = (p: Vec3, h: number, f = 'pelvis'): SkinPoint => ({ f, p: o
  * Columns run front to back (to the right, seen from outside); rows run down.
  */
 function gluteMed(): SkinDef {
-  const top = [0.3, 0.04, -0.26, -0.52, -0.74].map((z) => skinOnPelvis(bladePoint(crestHeight(z) - 0.1, z, 0.05), 0.05))
-  const belly = [0.24, 0.02, -0.22, -0.44, -0.62].map((z) => skinOnPelvis(bladePoint(0.9, z, 0.16), 0.16, 'thigh@0.2'))
-  const low = [0.15, 0.03, -0.1, -0.22, -0.34].map((z) => skinOnPelvis(bladePoint(0.45, z, 0.15), 0.14, 'thigh@0.55'))
-  const insertion = [0.07, 0.02, -0.04, -0.1, -0.16].map((z): SkinPoint => ({ f: 'femur', p: [0.63, 0.12, z], h: 0.07 }))
+  const top = [0.3, 0.04, -0.26, -0.52, -0.74, -0.88].map((z) => skinOnPelvis(bladePoint(crestHeight(z) - 0.1, z, 0.05), 0.05))
+  const belly = [0.24, 0.02, -0.22, -0.44, -0.62, -0.78].map((z) => skinOnPelvis(bladePoint(0.9, z, 0.16), 0.16, 'thigh@0.2'))
+  const low = [0.15, 0.03, -0.1, -0.22, -0.34, -0.6].map((z) => skinOnPelvis(bladePoint(0.45, z, 0.15), 0.14, 'thigh@0.55'))
+  const insertion = [0.07, 0.02, -0.04, -0.1, -0.16, -0.21].map((z): SkinPoint => ({ f: 'femur', p: [0.63, 0.12, z], h: 0.07 }))
   return { rows: [top, belly, low, insertion], lines: [1, 2, 3], label: [1, 2] }
 }
 
@@ -67,13 +67,13 @@ const sweeps: SweepDef[] = [
   // ───────────── hip ─────────────
   {
     id: 'glute-max',
-    group: 'glutes',
+    group: 'glute-max',
     kind: 'muscle',
     path: [
       // origin: a long edge down the side of the sacrum, from the dimple point to the tail bone
-      PL([0.3, 0.42, -0.94], 0.48, 0.12, { n: [-0.1, 0, -1] }),
+      PL([0.47, 0.55, -0.97], 0.7, 0.12, { n: [-0.1, 0, -1] }),
       // the buttock rides part of the way with the thigh, so it rolls over the back of the hip
-      P('thigh@0.4', -0.08, 0.02, -0.88, 0.56, 0.38, { n: [0.1, 0, -1] }),
+      P('thigh@0.4', 0.04, 0.12, -0.9, 0.6, 0.38, { n: [0.15, 0, -1] }),
       P('femur', 0.4, -0.7, -0.55, 0.42, 0.28, { n: [0.6, 0, -0.8] }),
       P('femur', 0.62, -1.5, -0.2, 0.14, 0.08, { n: [0.95, 0, -0.3] }),
     ],
@@ -81,7 +81,7 @@ const sweeps: SweepDef[] = [
   },
   {
     id: 'glute-med',
-    group: 'glutes',
+    group: 'glute-med',
     kind: 'muscle',
     // a fan laid on the outside of the blade: its top edge runs along the crest
     path: [],
@@ -344,13 +344,22 @@ export const legRig: RigDef = {
   ],
   groups: [
     {
-      id: 'glutes',
-      name: 'Glutes',
+      id: 'glute-max',
+      name: 'Gluteus maximus',
       color: '#f5a25a',
-      real: 'Gluteus maximus + gluteus medius',
-      where: 'Back of the hip bone and its top rim → side of the thigh bone.',
-      shape: 'A big slanted box for the buttock, plus a small fan on the side of the hip above it.',
-      move: 'The big block runs diagonally - high near the spine, low on the outside of the thigh.',
+      real: 'Gluteus maximus',
+      where: 'Back of the hip bone, the sacrum and the tail bone → the side band and the back of the thigh bone, below the big knob.',
+      shape: 'A big slanted box: the buttock itself. Its top edge runs diagonally from the sacrum down to the outside of the thigh.',
+      move: 'High near the spine, low on the outside of the thigh. Raise the leg and it stretches round the back of the hip.',
+    },
+    {
+      id: 'glute-med',
+      name: 'Gluteus medius',
+      color: '#c9a0f0',
+      real: 'Gluteus medius',
+      where: 'Outer face of the hip blade, just under the crest → the top of the big knob on the side of the thigh bone.',
+      shape: 'A thick fan on the side of the hip, above the buttock. The buttock\'s top edge laps over its back third.',
+      move: 'It fills the corner between the crest above, the side band in front and the buttock behind. Stand on one leg and it holds the pelvis level.',
     },
     {
       id: 'tfl',
@@ -478,7 +487,7 @@ export const legLessons: LessonDef[] = [
     section: 'Leg',
     title: 'Thigh',
     blurb: 'Quads in front, hamstrings behind, the inner-thigh wedge between them - and the sartorius ribbon drawing the border.',
-    show: ['glutes', 'tfl', 'quads', 'sartorius', 'adductors', 'hamstrings'],
+    show: ['glute-max', 'glute-med', 'tfl', 'quads', 'sartorius', 'adductors', 'hamstrings'],
     view: { target: [-0.1, -1.9, 0], fit: [4.6, 7], az: 25, el: 5 },
     sides: LIMB_SIDES,
     tips: [
@@ -508,7 +517,7 @@ export const legLessons: LessonDef[] = [
     section: 'Leg',
     title: 'Whole leg',
     blurb: 'Hip to heel. Follow the zig-zag: thigh leans in, knee is a bony box, calf swings out, ankle tucks back in.',
-    show: ['glutes', 'tfl', 'quads', 'sartorius', 'adductors', 'hamstrings', 'calf', 'soleus', 'shin', 'peroneals'],
+    show: ['glute-max', 'glute-med', 'tfl', 'quads', 'sartorius', 'adductors', 'hamstrings', 'calf', 'soleus', 'shin', 'peroneals'],
     view: { target: [-0.1, -3.9, 0.2], fit: [5.2, 11.4], az: 25, el: 5 },
     sides: LIMB_SIDES,
     tips: [
