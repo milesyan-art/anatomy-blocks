@@ -10,7 +10,9 @@
 
 在浏览器里直接用 · 不用注册 · 手机也能用
 
-[English](README.md) · **简体中文**
+<a href="README.md"><img src="docs/images/languages-zh.svg" width="260" alt="语言：简体中文（当前），切换到 English" /></a>
+
+<img src="docs/images/strip.svg" width="420" alt="方块解剖：27 颗星，版本 0.0.0" />
 
 <br />
 

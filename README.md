@@ -10,7 +10,9 @@
 
 Runs in your browser · no sign-up · works on phones too
 
-**English** · [简体中文](README.zh-CN.md)
+<a href="README.zh-CN.md"><img src="docs/images/languages-en.svg" width="260" alt="Language: English (current), switch to 简体中文" /></a>
+
+<img src="docs/images/strip.svg" width="420" alt="Anatomy Blocks: 27 stars, version 0.0.0" />
 
 <br />
 
