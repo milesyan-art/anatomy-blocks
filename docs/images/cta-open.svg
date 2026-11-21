@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="236" height="40" viewBox="0 0 236 40" role="img" aria-label="Open Block Anatomy">
+  <rect x="4" y="4" width="232" height="36" rx="18" fill="#1f2a5c"/>
+  <rect x="1" y="1" width="230" height="34" rx="17" fill="#ffd84d" stroke="#1f2a5c" stroke-width="2"/>
+  <text x="103" y="23.5" text-anchor="middle" font-family="Nunito, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="15" font-weight="800" fill="#1f2a5c">Open Block Anatomy</text>
+  <path d="M192 18 h16 m-6 -6 l6 6 l-6 6" fill="none" stroke="#1f2a5c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

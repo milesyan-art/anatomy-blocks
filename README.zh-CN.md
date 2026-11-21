@@ -5,27 +5,30 @@
 # 方块解剖 Block Anatomy
 
 <p>
-<a href="README.md"><img src="docs/images/badge-lang-en-link.svg" height="25" alt="切换到 English" /></a>
-<a href="README.zh-CN.md"><img src="docs/images/badge-lang-zh.svg" height="25" alt="简体中文（当前）" /></a>
-<a href="LICENSE"><img src="docs/images/badge-license-zh.svg" height="25" alt="许可证：MIT" /></a>
-<a href="https://github.com/milesyan-art/anatomy-blocks/stargazers"><img src="docs/images/badge-stars-zh.svg" height="25" alt="GitHub 星标" /></a>
+<b>用简单的大块肌肉，帮新手看清身体的形状，画准任何动作。</b>
+<br />
+<small>先抓大形，再抠细节。</small>
 </p>
 
-**一次学一个部位，只学对画画有用的肌肉。**
+<p>
+<a href="LICENSE"><img src="docs/images/badge-license-zh.svg" height="25" alt="许可证：MIT" /></a>
+<a href="https://github.com/milesyan-art/anatomy-blocks/stargazers"><img src="docs/images/badge-stars-zh.svg" height="25" alt="GitHub 星标" /></a>
+<a href="README.md"><img src="docs/images/badge-lang-en-link.svg" height="25" alt="切换到 English" /></a>
+<a href="README.zh-CN.md"><img src="docs/images/badge-lang-zh.svg" height="25" alt="简体中文（当前）" /></a>
+</p>
 
-### 👉 [打开方块解剖](https://anatomy-blocks.vercel.app) 👈
-
-在浏览器里直接用 · 不用注册 · 手机也能用
-
+<p>
+<a href="https://anatomy-blocks.vercel.app"><img src="docs/images/cta-open-zh.svg" height="40" alt="打开方块解剖" /></a>
 <br />
-
-<img src="docs/images/hero.png" width="860" alt="方块解剖界面：躯干正面，彩色肌肉方块附着在白色人台上，右侧是滑块" />
+<small>免费 · 浏览器里直接用 · 不用注册 · 手机也能用</small>
+</p>
 
 </div>
 
-<br />
 
 ## 🧱 这是什么？
+
+<img src="docs/images/hero.png" width="860" alt="方块解剖界面：躯干正面，彩色肌肉方块附着在白色人台上，右侧是滑块" />
 
 真实的解剖结构是一大堆细小的肌肉。画画时并不需要全部记住，你需要的是那些把皮肤**顶出形状的大块面**。
 

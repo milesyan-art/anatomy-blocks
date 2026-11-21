@@ -4,7 +4,11 @@
 
 # Block Anatomy
 
-**Learn the muscles that matter for drawing, one body part at a time.**
+<p>
+<b>Big, simple muscle blocks that help beginners see the body's shape and draw it in any pose.</b>
+<br />
+<small>Shapes first, details later.</small>
+</p>
 
 <p>
 <a href="LICENSE"><img src="docs/images/badge-license.svg" height="25" alt="License: MIT" /></a>
@@ -13,7 +17,11 @@
 <a href="README.zh-CN.md"><img src="docs/images/badge-lang-zh-link.svg" height="25" alt="Switch to 简体中文" /></a>
 </p>
 
-👉 <b>[Open Block Anatomy](https://anatomy-blocks.vercel.app)</b>
+<p>
+<a href="https://anatomy-blocks.vercel.app"><img src="docs/images/cta-open.svg" height="40" alt="Open Block Anatomy" /></a>
+<br />
+<small>Free · runs in your browser · no sign-up · works on phones</small>
+</p>
 
 </div>
 

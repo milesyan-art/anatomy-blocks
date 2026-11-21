@@ -33,7 +33,7 @@ function badge(name, label, value, { aria, labelFill = CREAM, valueFill = YELLOW
   const ty = H / 2 + 4 // text baseline
   const t = (x, s, f) =>
     `<text x="${x}" y="${ty}" text-anchor="middle" font-family="${f}" font-size="${FS}" font-weight="800" fill="${NAVY}">${s}</text>`
-  const starPath = `<path transform="translate(${PAD - 2} 3.2) scale(0.82)" d="M6 .5l1.6 3.8 4.1.4-3.1 2.7.9 4-3.5-2.1-3.5 2.1.9-4L.3 4.7l4.1-.4z" fill="${YELLOW}" stroke="${NAVY}" stroke-width="1.4" stroke-linejoin="round"/>`
+  const starPath = `<path transform="translate(${PAD - 2} ${(H / 2 - 5.9 * 0.82).toFixed(2)}) scale(0.82)" d="M6 .5l1.6 3.8 4.1.4-3.1 2.7.9 4-3.5-2.1-3.5 2.1.9-4L.3 4.7l4.1-.4z" fill="${YELLOW}" stroke="${NAVY}" stroke-width="1.4" stroke-linejoin="round"/>`
   const labelX = star ? lw / 2 + 7 : lw / 2
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H + 3}" viewBox="0 0 ${W} ${H + 3}" role="img" aria-label="${aria}">
   <defs><clipPath id="c"><rect x="1" y="1" width="${w - 2}" height="${H - 2}" rx="${R - 1}"/></clipPath></defs>
@@ -52,6 +52,30 @@ function badge(name, label, value, { aria, labelFill = CREAM, valueFill = YELLOW
   writeFileSync(resolve(out, name), svg)
   console.log(name, `${W}x${H + 3}`)
 }
+
+// the big "open the app" button: same pill, taller, yellow, with an arrow
+function cta(name, text, { aria, cjk = false }) {
+  const h = 36
+  const fs = 15
+  const tw = [...text].reduce((n, c) => n + (/[　-鿿]/.test(c) ? fs : fs * 0.6), 0)
+  const arrow = 18
+  const w = Math.round(tw + arrow + 8 + 22 * 2)
+  const font = cjk ? CJK : LATIN
+  const tx = 22 + tw / 2
+  const ax = 22 + tw + 8
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w + 4}" height="${h + 4}" viewBox="0 0 ${w + 4} ${h + 4}" role="img" aria-label="${aria}">
+  <rect x="4" y="4" width="${w}" height="${h}" rx="${h / 2}" fill="${NAVY}"/>
+  <rect x="1" y="1" width="${w - 2}" height="${h - 2}" rx="${h / 2 - 1}" fill="${YELLOW}" stroke="${NAVY}" stroke-width="2"/>
+  <text x="${tx}" y="${h / 2 + 5.5}" text-anchor="middle" font-family="${font}" font-size="${fs}" font-weight="800" fill="${NAVY}">${text}</text>
+  <path d="M${ax} ${h / 2} h${arrow - 2} m-6 -6 l6 6 l-6 6" fill="none" stroke="${NAVY}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+`
+  writeFileSync(resolve(out, name), svg)
+  console.log(name, `${w + 4}x${h + 4}`)
+}
+
+cta('cta-open.svg', 'Open Block Anatomy', { aria: 'Open Block Anatomy' })
+cta('cta-open-zh.svg', '打开方块解剖', { aria: '打开方块解剖', cjk: true })
 
 // language buttons: the current page is yellow, the other is cream
 badge('badge-lang-en.svg', '', 'English', { aria: 'English (current)', valueFill: YELLOW })
