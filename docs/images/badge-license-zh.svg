@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="92" height="25" viewBox="0 0 92 25" role="img" aria-label="许可证：MIT">
+  <defs><clipPath id="c"><rect x="1" y="1" width="87" height="20" rx="10"/></clipPath></defs>
+  <rect x="3" y="3" width="89" height="22" rx="11" fill="#1f2a5c"/>
+  <g clip-path="url(#c)" transform="translate(0 0)">
+    <rect x="1" y="1" width="51" height="20" fill="#fdfcf7"/>
+    <rect x="52" y="1" width="38" height="20" fill="#a9dd78"/>
+    <line x1="51" y1="0" x2="51" y2="22" stroke="#1f2a5c" stroke-width="1.5"/>
+  </g>
+  <rect x="0.75" y="0.75" width="87.5" height="20.5" rx="10.25" fill="none" stroke="#1f2a5c" stroke-width="1.5"/>
+  
+  <text x="25.5" y="15" text-anchor="middle" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" font-size="11" font-weight="800" fill="#1f2a5c">许可证</text>
+  <text x="70" y="15" text-anchor="middle" font-family="'PingFang SC', 'Hiragino Sans GB', 'Noto Sans SC', 'Microsoft YaHei', system-ui, sans-serif" font-size="11" font-weight="800" fill="#1f2a5c">MIT</text>
+</svg>

@@ -4,15 +4,18 @@
 
 # Block Anatomy
 
+<p>
+<a href="README.md"><img src="docs/images/badge-lang-en.svg" height="25" alt="English (current)" /></a>
+<a href="README.zh-CN.md"><img src="docs/images/badge-lang-zh-link.svg" height="25" alt="Switch to 简体中文" /></a>
+<a href="LICENSE"><img src="docs/images/badge-license.svg" height="25" alt="License: MIT" /></a>
+<a href="https://github.com/milesyan-art/anatomy-blocks/stargazers"><img src="docs/images/badge-stars.svg" height="25" alt="GitHub stars" /></a>
+</p>
+
 **Learn the muscles that matter for drawing, one body part at a time.**
 
 ### 👉 [Open Block Anatomy](https://anatomy-blocks.vercel.app) 👈
 
 Runs in your browser · no sign-up · works on phones too
-
-<a href="README.zh-CN.md"><img src="docs/images/languages-en.svg" width="260" alt="Language: English (current), switch to 简体中文" /></a>
-
-<img src="docs/images/strip.svg" width="420" alt="Anatomy Blocks: 27 stars, version 0.0.0" />
 
 <br />
 

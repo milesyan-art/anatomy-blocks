@@ -4,15 +4,18 @@
 
 # 方块解剖 Block Anatomy
 
+<p>
+<a href="README.md"><img src="docs/images/badge-lang-en-link.svg" height="25" alt="切换到 English" /></a>
+<a href="README.zh-CN.md"><img src="docs/images/badge-lang-zh.svg" height="25" alt="简体中文（当前）" /></a>
+<a href="LICENSE"><img src="docs/images/badge-license-zh.svg" height="25" alt="许可证：MIT" /></a>
+<a href="https://github.com/milesyan-art/anatomy-blocks/stargazers"><img src="docs/images/badge-stars-zh.svg" height="25" alt="GitHub 星标" /></a>
+</p>
+
 **一次学一个部位，只学对画画有用的肌肉。**
 
 ### 👉 [打开方块解剖](https://anatomy-blocks.vercel.app) 👈
 
 在浏览器里直接用 · 不用注册 · 手机也能用
-
-<a href="README.md"><img src="docs/images/languages-zh.svg" width="260" alt="语言：简体中文（当前），切换到 English" /></a>
-
-<img src="docs/images/strip.svg" width="420" alt="方块解剖：27 颗星，版本 0.0.0" />
 
 <br />
 

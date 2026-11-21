@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="107" height="25" viewBox="0 0 107 25" role="img" aria-label="License: MIT">
+  <defs><clipPath id="c"><rect x="1" y="1" width="102" height="20" rx="10"/></clipPath></defs>
+  <rect x="3" y="3" width="104" height="22" rx="11" fill="#1f2a5c"/>
+  <g clip-path="url(#c)" transform="translate(0 0)">
+    <rect x="1" y="1" width="66" height="20" fill="#fdfcf7"/>
+    <rect x="67" y="1" width="38" height="20" fill="#a9dd78"/>
+    <line x1="66" y1="0" x2="66" y2="22" stroke="#1f2a5c" stroke-width="1.5"/>
+  </g>
+  <rect x="0.75" y="0.75" width="102.5" height="20.5" rx="10.25" fill="none" stroke="#1f2a5c" stroke-width="1.5"/>
+  
+  <text x="33" y="15" text-anchor="middle" font-family="Nunito, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="800" fill="#1f2a5c">license</text>
+  <text x="85" y="15" text-anchor="middle" font-family="Nunito, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="11" font-weight="800" fill="#1f2a5c">MIT</text>
+</svg>
