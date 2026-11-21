@@ -2,7 +2,9 @@
 
 <img src="public/favicon.svg" width="88" alt="Block Anatomy logo: three stacked colourful blocks" />
 
-### Block Anatomy
+# Block Anatomy
+
+**Learn the muscles that matter for drawing, one body part at a time.**
 
 <p>
 <a href="LICENSE"><img src="docs/images/badge-license.svg" height="25" alt="License: MIT" /></a>
@@ -11,19 +13,19 @@
 <a href="README.zh-CN.md"><img src="docs/images/badge-lang-zh-link.svg" height="25" alt="Switch to 简体中文" /></a>
 </p>
 
-**Learn the muscles that matter for drawing, one body part at a time.**
-
-### 👉 [Open Block Anatomy](https://anatomy-blocks.vercel.app) 👈
-
-<br />
-
-<img src="docs/images/hero.png" width="860" alt="Block Anatomy showing the front of the torso as coloured muscle blocks on a white mannequin, with sliders on the right" />
+👉 <b>[Open Block Anatomy](https://anatomy-blocks.vercel.app)</b>
 
 </div>
 
-<br />
+<!-- TABLE OF CONTENTS -->
+
+<!-- ABOUT THE PROJECT -->
 
 ## 🧱 What is this?
+
+<img src="docs/images/hero.png" width="860" alt="Block Anatomy showing the front of the torso as coloured muscle blocks on a white mannequin, with sliders on the right" />
+
+
 
 Real anatomy is a tangle of tiny muscles. When you draw, you don't need all of
 them. You need the **big shapes** that push out the skin.
