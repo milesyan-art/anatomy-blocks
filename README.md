@@ -4,17 +4,17 @@
 
 # Block Anatomy
 
-<p>
-<b>Big, simple muscle blocks that help beginners see the body's shape and draw it in any pose.</b>
-<br />
-<small>Shapes first, details later.</small>
-</p>
-
-<p>
+<div>
 <a href="LICENSE"><img src="docs/images/badge-license.svg" height="25" alt="License: MIT" /></a>
 <a href="https://github.com/milesyan-art/anatomy-blocks/stargazers"><img src="docs/images/badge-stars.svg" height="25" alt="GitHub stars" /></a>
 <a href="README.md"><img src="docs/images/badge-lang-en.svg" height="25" alt="English (current)" /></a>
 <a href="README.zh-CN.md"><img src="docs/images/badge-lang-zh-link.svg" height="25" alt="Switch to 简体中文" /></a>
+</div>
+
+<p>
+<b>Big, simple muscle blocks that help beginners see the body's shape and draw it in any pose.</b>
+<br />
+<small>Shapes first, details later.</small>
 </p>
 
 <p>
