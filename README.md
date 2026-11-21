@@ -15,8 +15,6 @@
 
 ### 👉 [Open Block Anatomy](https://anatomy-blocks.vercel.app) 👈
 
-Runs in your browser · no sign-up · works on phones too
-
 <br />
 
 <img src="docs/images/hero.png" width="860" alt="Block Anatomy showing the front of the torso as coloured muscle blocks on a white mannequin, with sliders on the right" />
