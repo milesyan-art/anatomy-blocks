@@ -20,14 +20,23 @@
 <p>
 <a href="https://anatomy-blocks.vercel.app"><img src="docs/images/cta-open.svg" height="40" alt="Open Block Anatomy" /></a>
 <br />
-<small>Free · runs in your browser · no sign-up · works on phones</small>
+<small>Free · runs in your browser · no sign-up · works on iPad & phones</small>
 </p>
 
 </div>
 
-<!-- TABLE OF CONTENTS -->
+<details>
+<summary><b>📖 Table of contents</b></summary>
 
-<!-- ABOUT THE PROJECT -->
+- [🧱 What is this?](#-what-is-this)
+  - [🔄 Bend it. Twist it. Watch.](#-bend-it-twist-it-watch)
+- [🚀 Start in 30 seconds](#-start-in-30-seconds)
+- [🦴 Pick a body part](#-pick-a-body-part)
+- [🧰 Your toolbox](#-your-toolbox)
+- [🗺️ Roadmap](#️-roadmap)
+- [🙋 Questions](#-questions)
+
+</details>
 
 ## 🧱 What is this?
 

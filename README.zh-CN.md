@@ -20,11 +20,23 @@
 <p>
 <a href="https://anatomy-blocks.vercel.app"><img src="docs/images/cta-open-zh.svg" height="40" alt="打开方块解剖" /></a>
 <br />
-<small>免费 · 浏览器里直接用 · 不用注册 · 手机也能用</small>
+<small>免费 · 浏览器里直接用 · 不用注册 · iPad 和手机都能用</small>
 </p>
 
 </div>
 
+<details>
+<summary><b>📖 目录</b></summary>
+
+- [🧱 这是什么？](#-这是什么)
+  - [🔄 弯一弯，扭一扭，看一看](#-弯一弯扭一扭看一看)
+- [🚀 30 秒上手](#-30-秒上手)
+- [🦴 选一个部位](#-选一个部位)
+- [🧰 工具箱](#-工具箱)
+- [🗺️ 路线图](#️-路线图)
+- [🙋 常见问题](#-常见问题)
+
+</details>
 
 ## 🧱 这是什么？
 
