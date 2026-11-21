@@ -2,13 +2,13 @@
 
 <img src="public/favicon.svg" width="88" alt="Block Anatomy logo: three stacked colourful blocks" />
 
-# Block Anatomy
+### Block Anatomy
 
 <p>
-<a href="README.md"><img src="docs/images/badge-lang-en.svg" height="25" alt="English (current)" /></a>
-<a href="README.zh-CN.md"><img src="docs/images/badge-lang-zh-link.svg" height="25" alt="Switch to 简体中文" /></a>
 <a href="LICENSE"><img src="docs/images/badge-license.svg" height="25" alt="License: MIT" /></a>
 <a href="https://github.com/milesyan-art/anatomy-blocks/stargazers"><img src="docs/images/badge-stars.svg" height="25" alt="GitHub stars" /></a>
+<a href="README.md"><img src="docs/images/badge-lang-en.svg" height="25" alt="English (current)" /></a>
+<a href="README.zh-CN.md"><img src="docs/images/badge-lang-zh-link.svg" height="25" alt="Switch to 简体中文" /></a>
 </p>
 
 **Learn the muscles that matter for drawing, one body part at a time.**
