@@ -25,16 +25,6 @@
 
 </div>
 
-**Muscles are actually simple.**
-
-Your forearm has just three big ones. So why is it so hard to draw? Because it twists, and from every angle a different muscle shapes the curve. The problem isn't knowing. It's *seeing*.
-
-Block Anatomy shows each muscle as a big, hard-edged block. Turn it around in 3D and watch how, as the angle changes, a different block takes over the outline.
-
-Think of it as a raft. It carries you fast from *knowing* a muscle is there to *using* that knowledge every time you draw. Once it truly clicks, you'll spot those muscles in any photo: a tense action pose, a cool stance, a model with beautiful lines.
-
-> ✨ *And someday, when you've become a truly great artist and you look back, we hope you'll remember that once, a little raft helped you across. That's why we built it.*
-
 <details>
 <summary><b>📖 Table of contents</b></summary>
 
@@ -49,9 +39,13 @@ Think of it as a raft. It carries you fast from *knowing* a muscle is there to *
 
 ## 🎨 Why Block Anatomy
 
-<img src="docs/images/hero.png" width="860" alt="Block Anatomy showing the front of the torso as coloured muscle blocks on a white mannequin, with sliders on the right" />
+**Muscles are actually simple.**
 
-Most anatomy references show every muscle. Beginners don't need that. Block Anatomy turns each muscle group into **one simple block**, so you see the big shapes first and draw the body right in any pose.
+Your forearm has just three big ones. So why is it so hard to draw? Because it twists, and from every angle a different muscle shapes the curve. The problem isn't knowing. It's *seeing*.
+
+Block Anatomy shows each muscle as a big, hard-edged block. Turn it around in 3D and watch how, as the angle changes, a different block takes over the outline.
+
+<img src="docs/images/hero.png" width="860" alt="Block Anatomy showing the front of the torso as coloured muscle blocks on a white mannequin, with sliders on the right" />
 
 <table>
 <tr>
@@ -61,7 +55,9 @@ Most anatomy references show every muscle. Beginners don't need that. Block Anat
 </tr>
 </table>
 
-<br />
+Think of Block Anatomy as a raft. It carries you fast from *knowing* a muscle is there to *using* that knowledge every time you draw. Once it truly clicks, you'll spot those muscles in any photo: a tense action pose, a cool stance, a model with beautiful lines.
+
+> ✨ *And someday, when you've become a truly great artist and you look back, we hope you'll remember that once, a little raft helped you across. That's why we built it.*
 
 ## ✨ Features
 
