@@ -25,6 +25,16 @@
 
 </div>
 
+**Muscles are actually simple.**
+
+Your forearm has just three big ones. So why is it so hard to draw? Because it twists, and from every angle a different muscle shapes the curve. The problem isn't knowing. It's *seeing*.
+
+Block Anatomy shows each muscle as a big, hard-edged block. Turn it around in 3D and watch how, as the angle changes, a different block takes over the outline.
+
+Think of it as a raft. It carries you fast from *knowing* a muscle is there to *using* that knowledge every time you draw. Once it truly clicks, you'll spot those muscles in any photo: a tense action pose, a cool stance, a model with beautiful lines.
+
+> ✨ *And someday, when you've become a truly great artist and you look back, we hope you'll remember that once, a little raft helped you across. That's why we built it.*
+
 <details>
 <summary><b>📖 Table of contents</b></summary>
 
