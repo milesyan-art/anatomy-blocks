@@ -61,14 +61,12 @@
 </tr>
 </table>
 
-<br />
-
 ## ✨ 功能
 
 <p align="center">
-<img src="docs/images/twist.gif" width="360" alt="动图：前臂从掌心向上转到掌心向下，肌肉方块随之缠绕" />
+<img src="docs/images/arm.gif" width="360" alt="动图：整条手臂弯成秀肌肉，再转成拇指朝上、掌心向下，肌肉方块随之拉长、鼓起、缠绕" />
 <br />
-<sub>把掌心翻向下，前臂的方块会像拧毛巾一样缠绕起来。</sub>
+<sub>弯一弯手肘、扭一扭前臂，每个方块都会拉长、鼓起、缠绕。</sub>
 </p>
 
 <table>
@@ -85,8 +83,6 @@
 <td valign="top">🚻 <b>体型和左右</b><br />切换男性或女性，选择左侧或右侧肢体。</td>
 </tr>
 </table>
-
-<br />
 
 ## 🦴 部位
 
@@ -107,55 +103,42 @@
 <b>躯干</b> <a href="https://anatomy-blocks.vercel.app/#torso-front">正面</a> · <a href="https://anatomy-blocks.vercel.app/#torso-back">背面</a>
 </p>
 
-<br />
-
 ## 🚀 快速上手
 
 1. **[打开网站](https://anatomy-blocks.vercel.app)**，不用安装。
 2. 在左侧列表里**选一个部位**。
 3. **拖动**旋转，**拖滑块**摆姿势，**点方块**看说明。**?** 按钮里有全部快捷键。
 
-<br />
-
 ## 🗺️ 路线图
 
 <img src="docs/images/roadmap.zh-CN.png" width="860" alt="路线图：下一步，全新的头部；然后，有自己骨骼和肌肉的女性身体；之后，逐个重做每个部位，让方块更清晰、更好懂" />
-
-<br />
 
 ## 🙋 常见问题
 
 <details>
 <summary><b>可以用来学医学解剖吗？</b></summary>
-<br />
 不行。它是故意简化过的：肌肉被合并、做成方块，是为了帮助画画，不追求解剖上的精确。
 </details>
 
 <details>
 <summary><b>能看右手、右腿吗？</b></summary>
-<br />
 能。用“男 / 女”下面的 <b>左 · 右</b> 开关就行，手臂、手、腿、脚都可以用，视角按钮也会跟着对应过去。躯干本来就显示两侧，所以在躯干课程里这个开关是灰色的。
 </details>
 
 <details>
 <summary><b>手机和平板能用吗？</b></summary>
-<br />
 能。单指拖动旋转，双指缩放，双指扭转可以倾斜画面。
 </details>
 
 <details>
 <summary><b>可以分享某个部位的链接吗？</b></summary>
-<br />
 可以。每个部位都有自己的链接，比如 <a href="https://anatomy-blocks.vercel.app/#hand">anatomy-blocks.vercel.app/#hand</a>。<i>部位</i>一节里的链接也是这样。
 </details>
-
-<br />
 
 ---
 
 <details>
 <summary><b>🛠️ 给开发者</b></summary>
-<br />
 
 方块解剖是一个用 React、Vite 和 three.js 做的小型静态网站。在本地运行：
 
@@ -169,6 +152,5 @@ npm run dev
 </details>
 
 <div align="center">
-<br />
 <sub>用 🎨 为爱画画的人制作。</sub>
 </div>

@@ -62,9 +62,9 @@ Think of Block Anatomy as a raft. It carries you fast from *knowing* a muscle is
 ## ✨ Features
 
 <p align="center">
-<img src="docs/images/twist.gif" width="360" alt="Animation: the forearm twists from palm up to palm down and the muscle blocks wrap around it" />
+<img src="docs/images/arm.gif" width="360" alt="Animation: the whole arm bends into a flex, turns thumb up, then twists palm down, and the muscle blocks stretch, bunch and wrap" />
 <br />
-<sub>Turn the palm down and the forearm blocks wrap like a towel being wrung out.</sub>
+<sub>Bend the elbow or twist the forearm and every block stretches, bunches and wraps.</sub>
 </p>
 
 <table>
@@ -81,8 +81,6 @@ Think of Block Anatomy as a raft. It carries you fast from *knowing* a muscle is
 <td valign="top">🚻 <b>Body and side</b><br />Switch male or female, and the left or right limb.</td>
 </tr>
 </table>
-
-<br />
 
 ## 🦴 Body parts
 
@@ -103,34 +101,26 @@ Think of Block Anatomy as a raft. It carries you fast from *knowing* a muscle is
 <b>Torso</b> <a href="https://anatomy-blocks.vercel.app/#torso-front">Front</a> · <a href="https://anatomy-blocks.vercel.app/#torso-back">Back</a>
 </p>
 
-<br />
-
 ## 🚀 Get started
 
 1. **[Open the app](https://anatomy-blocks.vercel.app).** Nothing to install.
 2. **Pick a body part** from the list on the left.
 3. **Drag** to spin, **move a slider** to pose, and **click a block** to read about it. The **?** button lists every shortcut.
 
-<br />
-
 ## 🗺️ Roadmap
 
 <img src="docs/images/roadmap.png" width="860" alt="Roadmap: next, a new head; then, the female body with its own bones and muscles; later, every part rebuilt so the blocks are sharper and easier to understand" />
-
-<br />
 
 ## 🙋 Questions
 
 <details>
 <summary><b>Is this good enough for medical study?</b></summary>
-<br />
 No. It is simplified on purpose. Muscles are grouped and shaped as blocks to
 help you draw, not to be anatomically exact.
 </details>
 
 <details>
 <summary><b>Can I see the right arm or leg?</b></summary>
-<br />
 Yes. Use the <b>Left · Right</b> switch under <i>Male / Female</i>. It works for
 arms, hands, legs and feet, and the view buttons still point the right way. The
 torso already shows both sides, so the switch is greyed out there.
@@ -138,25 +128,20 @@ torso already shows both sides, so the switch is greyed out there.
 
 <details>
 <summary><b>Does it work on my phone or tablet?</b></summary>
-<br />
 Yes. Drag with one finger to spin and pinch to zoom. Twist two fingers to tilt the picture.
 </details>
 
 <details>
 <summary><b>Can I share a link to one body part?</b></summary>
-<br />
 Yes. Every part has its own link, like
 <a href="https://anatomy-blocks.vercel.app/#hand">anatomy-blocks.vercel.app/#hand</a>.
 The links under <i>Body parts</i> work the same way.
 </details>
 
-<br />
-
 ---
 
 <details>
 <summary><b>🛠️ For developers</b></summary>
-<br />
 
 Block Anatomy is a small static site built with React, Vite and three.js. To
 run it on your computer:
@@ -172,6 +157,5 @@ by Vercel from the `main` branch.
 </details>
 
 <div align="center">
-<br />
 <sub>Made with 🎨 for people who love to draw.</sub>
 </div>
